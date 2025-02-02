@@ -6,17 +6,12 @@
 
 import 'jasmine';
 
-import {
-  audioChunk,
-  fetchChunk,
-  imageChunk,
-  textChunk,
-  videoChunk,
-} from '../content/content.js';
-import {Chunk} from "../interfaces.js";
-import {prompt, promptWithMetadata} from './prompt.js';
+import {Chunk} from '../interfaces.js';
 import {createStream} from '../stream/stream.js';
 import {ignoreFields} from '../testing/matchers.js';
+
+import {audioChunk, fetchChunk, imageChunk, textChunk, videoChunk,} from './content.js';
+import {prompt, promptWithMetadata} from './prompt.js';
 
 const isBrowser = typeof window !== 'undefined';
 
@@ -87,53 +82,60 @@ describe('prompt', () => {
     it('handles image input', async () => {
       const img = new Image();
       img.src =
-        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z7DwCwAGPAKWS7xnTwAAAABJRU5ErkJggg==';
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z7DwCwAGPAKWS7xnTwAAAABJRU5ErkJggg==';
       const result = prompt`describe this image: ${img}`;
 
       const resultTree = await result;
       const iChunk = await imageChunk(img);
 
-      expect<unknown>(resultTree).toEqual([textChunk('describe this image: '), iChunk]);
+      expect<unknown>(resultTree).toEqual([
+        textChunk('describe this image: '), iChunk
+      ]);
     });
 
     it('handles audio input', async () => {
       const audio = new Audio();
       audio.src =
-        'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+          'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
       const result = prompt`describe this audio: ${audio}`;
 
       const resultTree = await result;
       const aChunk = await audioChunk(audio);
 
-      expect<unknown>(resultTree).toEqual([textChunk('describe this audio: '), aChunk]);
+      expect<unknown>(resultTree).toEqual([
+        textChunk('describe this audio: '), aChunk
+      ]);
     });
 
     it('handles video input', async () => {
       const video = document.createElement('video');
       video.src =
-        'data:video/webm;base64,GkXfo0AgQoaBAUL3gQFC8oEEQvOBCEKCQAR3ZWJtQoeBAkKFgQIYU4BnQI0VSalmQCgq17FAAw9CQE2AQAZ3aGFtbXlXQUAGd2hhbW15RIlACECPQAAAAAAAFlSua0AxrkAu14EBY8WBAZyBACK1nEADdW5khkAFVl9WUDglhohAA1ZQOIOBAeBABrCBCLqBCB9DtnVAIueBAKNAHIEAAIAwAQCdASoIAAgAAUAmJaQAA3AA/vz0AAA=';
+          'data:video/webm;base64,GkXfo0AgQoaBAUL3gQFC8oEEQvOBCEKCQAR3ZWJtQoeBAkKFgQIYU4BnQI0VSalmQCgq17FAAw9CQE2AQAZ3aGFtbXlXQUAGd2hhbW15RIlACECPQAAAAAAAFlSua0AxrkAu14EBY8WBAZyBACK1nEADdW5khkAFVl9WUDglhohAA1ZQOIOBAeBABrCBCLqBCB9DtnVAIueBAKNAHIEAAIAwAQCdASoIAAgAAUAmJaQAA3AA/vz0AAA=';
 
       const result = prompt`describe this video: ${video}`;
 
       const resultTree = await result;
       const vChunk = await videoChunk(video);
 
-      expect<unknown>(resultTree).toEqual([textChunk('describe this video: '), vChunk]);
+      expect<unknown>(resultTree).toEqual([
+        textChunk('describe this video: '), vChunk
+      ]);
     });
   }
 
   it('handles fetch input', async () => {
-    const fetchResponse = () =>
-      fetch(
+    const fetchResponse = () => fetch(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z7DwCwAGPAKWS7xnTwAAAABJRU5ErkJggg==',
-      );
+    );
     const result = prompt`describe this content: ${fetchResponse()}`;
 
     const resultTree = await result;
     const fChunk = await fetchChunk(fetchResponse());
 
-    expect<unknown>(resultTree).toEqual([textChunk('describe this content: '), fChunk]);
+    expect<unknown>(resultTree).toEqual([
+      textChunk('describe this content: '), fChunk
+    ]);
   });
 });
 
