@@ -10,13 +10,13 @@ import { chunkText } from "../content/content.js";
 class DebugContext implements SessionContext {
     constructor(private readonly context: SessionContext) {}
     read(id: string): AsyncIterable<Chunk> {
-        async function* readAndLog() {
-         for await (const chunk of this.context.read(id)) {
+        async function* readAndLog(context: SessionContext) {
+         for await (const chunk of context.read(id)) {
             console.log(`Reading from ${id}`, chunkText(chunk));
             yield chunk;
          }
         }
-        return readAndLog();
+        return readAndLog(this.context);
     }
     async write(id: string, chunk: InternalChunk): Promise<void> {
         console.log(`Writing ${id}`, chunkText(chunk), chunk.seq, chunk.continued);

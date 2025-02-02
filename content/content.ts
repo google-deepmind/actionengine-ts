@@ -304,10 +304,6 @@ export function withMetadata<T extends Chunk>(
   };
 }
 
-export function chunkUrl(chunk: Chunk): string {
-  return URL.createObjectURL(chunkBlob(chunk));
-}
-
 /**
  * Converts a mimetype to a string.
  */

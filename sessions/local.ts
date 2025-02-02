@@ -26,6 +26,9 @@ class LocalContext implements SessionContext {
             pl = this.createStream(id);
         }
         const lastSeq = this.sequenceOrder.get(id);
+        if (lastSeq === undefined) {
+            throw new Error(`Sequence not found for ${id}`);
+        }
         if ((lastSeq + 1) !== chunk.seq) {
             throw new Error(`Out of order sequence writes not yet supported. last seq ${lastSeq}, current seq ${chunk.seq}`);
         }

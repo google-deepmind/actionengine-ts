@@ -5,3 +5,4 @@
  */
 
 export * from './content.js';
+export * from './prompt.js';

@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Session as SessionInterface, Constructor, SessionContext, SessionProvider, InternalChunk, Content, Placeholder, Chunk, Action, ActionConfigs, ActionInputs, ActionOutputs, SessionContextMiddleware } from "../interfaces.js";
-import { isAsyncIterable, thenableAsyncIterable } from "../stream/stream.js";
-import { uniqueId } from "./utils.js";
+import { Action, ActionConfigs, ActionInputs, ActionOutputs, Chunk, Constructor, Content, InternalChunk, Placeholder, Session as SessionInterface, SessionContext, SessionContextMiddleware, SessionProvider } from '../interfaces.js';
+import { isAsyncIterable, thenableAsyncIterable } from '../stream/stream.js';
+
+import { uniqueId } from './utils.js';
 
 
 class SessionPlaceholder implements Placeholder {
@@ -23,14 +24,14 @@ class SessionPlaceholder implements Placeholder {
     async write(content: Content): Promise<void> {
         if (content instanceof Array) {
             for (const item of content) {
-                this.write(item)
+                await this.write(item)
             }
         } else if (isAsyncIterable<Content>(content)) {
             for await (const item of content) {
-                this.write(item);
+                await this.write(item);
             }
         } else {
-            this.writeChunk(content);
+            await this.writeChunk(content);
         }
     }
 
@@ -39,7 +40,7 @@ class SessionPlaceholder implements Placeholder {
     }
 
     private async writeChunk(chunk: Chunk): Promise<void> {
-        const c = {...chunk} as InternalChunk;
+        const c = { ...chunk } as InternalChunk;
         c.seq = this.seq;
         this.seq++;
         if (c.continued === undefined) {
@@ -63,29 +64,34 @@ class SessionPlaceholder implements Placeholder {
     }
 
     then = thenableAsyncIterable;
-
 }
 
 /** Session wrapper given a SessionContext. */
 class Session implements SessionInterface {
-    private actionProviders = new Map<abstract new() => Action, new() => Action>();
+    private actionProviders =
+        new Map<abstract new () => Action, new () => Action>();
 
-    constructor(private readonly context: SessionContext) {
-    }
+    constructor(private readonly context: SessionContext) { }
 
     placeholder(): Placeholder {
         return new SessionPlaceholder(this.context);
     }
 
-    async run<T extends Action>(action: abstract new() => T, inputs: ActionInputs<T>, outputs: ActionOutputs<T>, configs?: ActionConfigs<T>): Promise<void> {
-        // TODO(doug): Verify that the inputs and outputs are in the current session context.
+    async run<T extends Action>(
+        action: abstract new () => T, inputs: ActionInputs<T>,
+        outputs: ActionOutputs<T>, configs?: ActionConfigs<T>): Promise<void> {
+        // TODO(doug): Verify that the inputs and outputs are in the current session
+        // context.
         let actionCtor = this.actionProviders.get(action);
         if (!actionCtor) {
-            actionCtor = action as (new() => T);
+            actionCtor = action as (new () => T);
         }
         const actionInstance = new actionCtor();
-        if (typeof actionInstance.run !== "function") {
-            const provided = Array.from(this.actionProviders.keys().map((k) => k.name));
+        if (typeof actionInstance.run !== 'function') {
+            const provided: string[] = [];
+            for (const k of this.actionProviders.keys()) {
+                provided.push(`${k.name}`);
+            }
             throw new Error(`${action.name} is not provided. ${provided}`);
         }
         await actionInstance.run(this, inputs, outputs, configs);
@@ -95,12 +101,13 @@ class Session implements SessionInterface {
         await this.context.close();
     }
 
-    provide<T extends Action>(sym: abstract new() => T, impl: new() => T) {
+    provide<T extends Action>(sym: abstract new () => T, impl: new () => T) {
         this.actionProviders.set(sym, impl);
     }
 }
 
-export function sessionProvider(contextProvider: () => SessionContext): SessionProvider {
+export function sessionProvider(contextProvider: () => SessionContext):
+    SessionProvider {
     return (...middleware: SessionContextMiddleware[]) => {
         let c: SessionContext = contextProvider();
         if (middleware) {
@@ -113,7 +120,9 @@ export function sessionProvider(contextProvider: () => SessionContext): SessionP
 }
 
 /** Wraps a sessionProvider with addional exposed actions. */
-export function sessionWithActions<T extends Array<[abstract new() => Action, new() => Action]>>(provider: SessionProvider, actions: T): SessionProvider {
+export function sessionWithActions<
+    T extends Array<[abstract new () => Action, new () => Action]>>(
+        provider: SessionProvider, actions: T): SessionProvider {
     return (...middleware: SessionContextMiddleware[]) => {
         const s = provider(...middleware);
         for (const [sym, impl] of actions) {
