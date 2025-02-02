@@ -9,16 +9,22 @@
         "experimentalDecorators": true,
         "moduleResolution": "bundler",
         "typeRoots": [
-          "./node_modules/@types"
+            "./node_modules/@types"
         ],
-        "lib": ["DOM", "ESNext"],
+        "lib": [
+            "DOM",
+            "ESNext"
+        ],
         "paths": {
-          "@gdm/sdk": ["."]
+            "aiae": [
+                "."
+            ]
         }
     },
     "exclude": [
-      "node_modules",
-      "dist"
+        "node_modules",
+        "dist",
+        "**/*.d.ts",
+        "**/*.js",
     ]
-  }
-  
+}

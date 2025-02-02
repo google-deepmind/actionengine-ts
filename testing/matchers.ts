@@ -5,136 +5,102 @@
 
 import 'jasmine';
 
-import {Chunk} from '../interfaces.js';
+import { Chunk } from '../interfaces.js';
 
 /** Ignore fields when comparing objects. */
 export function ignoreFields(...fields: string[]) {
-  const equality = (a: unknown, b: unknown): boolean => {
-    if (
-      typeof a !== 'object' ||
-      typeof b !== 'object' ||
-      a === null ||
-      b === null
-    ) {
-      // Base case: simple values or nulls, just compare directly
-      return a === b;
-    }
-    if (Object.keys(a).length !== Object.keys(b).length) {
-      return false;
-    }
-    // Recursive case: objects
-    return Object.keys(a).every((key) => {
-      if (fields.includes(key)) {
-        // Ignore fields
-        return true;
-      } else {
-        // Recursively compare other properties
-        return equality(
-          (a as {[key: string]: unknown})[key],
-          (b as {[key: string]: unknown})[key],
-        );
-      }
-    });
-  };
-  return equality;
-}
-
-function isObject(value: unknown): value is {[key: string]: unknown} {
-  return (
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    value !== null &&
-    value !== undefined
-  );
-}
-
-function stripUndefined<T extends {[key: string]: unknown}>(
-  obj: T | unknown,
-): T {
-  if (!isObject(obj)) {
-    return obj as T;
-  }
-  return Object.fromEntries(
-    Object.entries(obj)
-      // Filter out undefined values or empty arrays.
-      .filter(
-        ([key, value]) =>
-          value !== undefined &&
-          ((Array.isArray(value) && value.length > 0) || !Array.isArray(value)),
-      )
-      // Recursively strip undefined values.
-      .map(([key, value]) => {
-        if (Array.isArray(value)) {
-          return [key, value.map(stripUndefined)];
+    const equality = (a: unknown, b: unknown): boolean => {
+        if (
+            typeof a !== 'object' ||
+            typeof b !== 'object' ||
+            a === null ||
+            b === null
+        ) {
+            // Base case: simple values or nulls, just compare directly
+            return a === b;
         }
-        if (isObject(value)) {
-          return [key, stripUndefined(value)];
+        if (Object.keys(a).length !== Object.keys(b).length) {
+            return false;
         }
-        return [key, value];
-      }),
-  ) as T;
+        // Recursive case: objects
+        return Object.keys(a).every((key) => {
+            if (fields.includes(key)) {
+                // Ignore fields
+                return true;
+            } else {
+                // Recursively compare other properties
+                return equality(
+                    (a as { [key: string]: unknown })[key],
+                    (b as { [key: string]: unknown })[key],
+                );
+            }
+        });
+    };
+    return equality;
 }
 
 declare global {
-  namespace jasmine {
-    interface Matchers<T> {
-      toEqualChunk(expected: Chunk): void;
-      toEqualChunks(expected: Chunk[]): void;
+    // eslint-disable-next-line @typescript-eslint/no-namespace
+    namespace jasmine {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        interface Matchers<T> {
+            toEqualChunk(expected: Chunk): void;
+            toEqualChunks(expected: Chunk[]): void;
+        }
     }
-  }
 }
 
 /** Matcher to compare chunks without volatile fields. */
 export const matchers: jasmine.CustomMatcherFactories = {
-  toEqualChunk(util: jasmine.MatchersUtil) {
-    return {
-      compare(actual: Chunk, expected: Chunk) {
-        const expectedClean = cleanChunk(expected);
-        const actualClean = cleanChunk(actual);
+    toEqualChunk(util: jasmine.MatchersUtil) {
         return {
-          pass: util.equals(actualClean, expectedClean),
-          message: util.buildFailureMessage(
-            'toEqualChunk',
-            false,
-            actualClean,
-            expectedClean,
-          ),
+            compare(actual: Chunk, expected: Chunk) {
+                const expectedClean = cleanChunk(expected);
+                const actualClean = cleanChunk(actual);
+                return {
+                    pass: util.equals(actualClean, expectedClean),
+                    message: util.buildFailureMessage(
+                        'toEqualChunk',
+                        false,
+                        actualClean,
+                        expectedClean,
+                    ),
+                };
+            },
         };
-      },
-    };
-  },
+    },
 
-  toEqualChunks(util: jasmine.MatchersUtil) {
-    return {
-      compare(actual: Chunk[], expected: Chunk[]) {
-        const actualClean = actual.map((c) => cleanChunk(c));
-        const expectedClean = expected.map((c) => cleanChunk(c));
+    toEqualChunks(util: jasmine.MatchersUtil) {
         return {
-          pass: util.equals(actualClean, expectedClean),
-          message: util.buildFailureMessage(
-            'toEqualChunks',
-            false,
-            actualClean,
-            expectedClean,
-          ),
+            compare(actual: Chunk[], expected: Chunk[]) {
+                const actualClean = actual.map((c) => cleanChunk(c));
+                const expectedClean = expected.map((c) => cleanChunk(c));
+                return {
+                    pass: util.equals(actualClean, expectedClean),
+                    message: util.buildFailureMessage(
+                        'toEqualChunks',
+                        false,
+                        actualClean,
+                        expectedClean,
+                    ),
+                };
+            },
         };
-      },
-    };
-  },
+    },
 
 
 };
 
 function cleanChunk(chunk?: Chunk) {
-  if (!chunk) {
-    return;
-  }
-  return {
-    ...chunk,
-    metadata: {
-      ...chunk.metadata,
-      // Ignore capture time for comparisons.
-      captureTime: 0,
-    },
-  };
+    if (!chunk) {
+        return;
+    }
+    return {
+        ...chunk,
+        metadata: {
+            ...chunk.metadata,
+            // Ignore capture time for comparisons.
+            captureTime: 0,
+        },
+    };
 }

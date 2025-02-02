@@ -18,6 +18,7 @@
     "build:node": "npm run build && cat node.js.polyfill dist/aiae.js > dist/aiae.node.js",
     "build:typings": "tsc --outDir ./dist --declaration --emitDeclarationOnly",
     "build:dts": "npm run build:typings && rollup -c rollup.config.ts",
+    "fix": "npx eslint --fix '**/*.ts'",
     "dev": "npm install && concurrently \"npm run build -- --watch\" \"tsc --watch\" \"esbuild --servedir=. --serve=:5432 --watch\" \"npm run dev:info\"",
     "dev:info": "sleep 3 && echo \"\n\nOpen demos at http://$(hostname):5432/examples\n\n\"",
     "test": "tsc && jasmine --config=jasmine.json",
@@ -29,13 +30,18 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.19.0",
     "@types/jasmine": "^5.1.4",
+    "@types/node": "^22.7.5",
     "concurrently": "^9.0.1",
     "esbuild": "0.20.2",
+    "eslint": "^9.19.0",
+    "globals": "^15.14.0",
     "jasmine": "^5.2.0",
     "nodemon": "^3.1.7",
     "rollup": "^4.24.0",
     "rollup-plugin-dts": "^6.1.1",
-    "typescript": "^5.5.4"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
   }
 }

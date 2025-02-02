@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type StreamItems, type ReadableStream, type WritableStream} from "./stream/interfaces";
+import { type StreamItems, type ReadableStream, type WritableStream } from "./stream/interfaces";
 
 // Chunk Interfaces Start
 
@@ -86,19 +86,21 @@ export interface Placeholder extends Input, Output {
 
 // Action Interfaces Start
 
-export type Transferable = Readonly<number> | Readonly<string> | Readonly<{[key: string|number]: Transferable}> | Readonly<ArrayLike<Transferable>>;
+export type Transferable = Readonly<number> | Readonly<string> | Readonly<{ [key: string | number]: Transferable }> | Readonly<ArrayLike<Transferable>>;
 
 // export interface Action<T extends {[key: string]: Input} = {[key: string]: Input}, U extends {[key: string]: Output} = {[key: string]: Output}, V extends Readonly<{[key: string]: Transferable}> = Readonly<{[key: string]: Transferable}>> {
 //     run(session: Session, inputs: T, outputs: U, configs?: V): Promise<void>;
 // }
 
 // export abstract class AbstractAction<T extends {[key: string]: Input} = {[key: string]: Input}, U extends {[key: string]: Output} = {[key: string]: Output}, V extends Readonly<{[key: string]: Transferable}> = Readonly<{[key: string]: Transferable}>> implements Action<T,U,V> {
-export abstract class Action<T extends {[key: string]: Input} = {[key: string]: Input}, U extends {[key: string]: Output} = {[key: string]: Output}, V extends Readonly<{[key: string]: Transferable}> = Readonly<{[key: string]: Transferable}>> {
+export abstract class Action<T extends { [key: string]: Input } = { [key: string]: Input }, U extends { [key: string]: Output } = { [key: string]: Output }, V extends Readonly<{ [key: string]: Transferable }> = Readonly<{ [key: string]: Transferable }>> {
     abstract run(session: Session, inputs: T, outputs: U, configs?: V): Promise<void>;
 }
 
 export type ActionInputs<T extends Action> = T extends Action<infer U> ? U : never;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type ActionOutputs<T extends Action> = T extends Action<infer U, infer V> ? V : never;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type ActionConfigs<T extends Action> = T extends Action<infer U, infer V, infer W> ? W : never;
 
 // Action Interfaces End
@@ -109,11 +111,11 @@ export interface Session {
     // Returns a placeholder for reading and writing a stream in the context of the session
     placeholder(): Placeholder;
     // Runs an action.
-    run<T extends Action>(action: abstract new() => T, inputs: ActionInputs<T>, outputs: ActionOutputs<T>, configs?: ActionConfigs<T>): Promise<void>;
+    run<T extends Action>(action: abstract new () => T, inputs: ActionInputs<T>, outputs: ActionOutputs<T>, configs?: ActionConfigs<T>): Promise<void>;
     // Closes the session and all open streams or running actions.
     close(): Promise<void>;
     // Provide an implementation of an action.
-    provide<T extends Action>(sym: abstract new () => T, impl: new() => T): void;
+    provide<T extends Action>(sym: abstract new () => T, impl: new () => T): void;
 }
 
 export interface SessionContext {
@@ -135,7 +137,7 @@ export interface SessionProvider {
 
 // General Interfaces Start
 
-// tslint:disable-next-line:no-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Constructor<T> = new (...args: any[]) => T;
 
 // General Interfaces End

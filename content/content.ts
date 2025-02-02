@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Chunk, RefChunk, DataChunk, ChunkMetadata, Mimetype} from '../interfaces.js';
+import { Chunk, RefChunk, DataChunk, ChunkMetadata, Mimetype } from '../interfaces.js';
 
 /**
  * Type assertion the chunk is a text.
@@ -50,10 +50,10 @@ export function isChunk(maybeChunk: unknown): maybeChunk is Chunk {
  * Creates a json chunk.
  */
 export function jsonChunk(
-  // tslint:disable-next-line:no-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   json: any,
   metadata: ChunkMetadata = {},
-  // tslint:disable-next-line:no-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   replacer?: (this: any, key: string, value: any) => any,
 ): Chunk {
   const defaultMetadata: ChunkMetadata = {
@@ -78,7 +78,7 @@ export function jsonChunk(
  */
 export function chunkJson(
   chunk: Chunk,
-  // tslint:disable-next-line:no-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reviver?: (this: any, key: string, value: any) => any,
 ): unknown {
   if (isJsonChunk(chunk)) {
@@ -173,7 +173,7 @@ export async function imageChunk(
         () => {
           resolve();
         },
-        {once: true},
+        { once: true },
       );
     });
   }
@@ -192,7 +192,7 @@ interface HTMLMediaElementWithCapture extends HTMLMediaElement {
 }
 
 // TODO(doug): Use media recorder for capturing content from media.
-// tslint:disable-next-line:no-unused-variable
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function captureMediaFromElement(
   mediaElement: HTMLMediaElementWithCapture,
   maxDurationMs = 0,
@@ -216,7 +216,7 @@ async function captureMediaFromElement(
 
   const blob = new Promise<Blob>((resolve) => {
     mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, {type});
+      const blob = new Blob(chunks, { type });
       resolve(blob);
     };
   });
@@ -340,9 +340,9 @@ export function stringifyMimetype(mimetype?: Mimetype): string {
  */
 export function parseMimetype(mimetype?: string): Mimetype {
   if (!mimetype) {
-    return {type: 'application', subtype: 'octet-stream'};
+    return { type: 'application', subtype: 'octet-stream' };
   }
-  let parameters: {[key: string]: string} | undefined = undefined;
+  let parameters: { [key: string]: string } | undefined = undefined;
   const paramParts = mimetype.split(';');
   if (paramParts.length > 1) {
     mimetype = mimetype.substring(0, paramParts[0].length);
@@ -407,7 +407,7 @@ export const TEXT_MIME_TYPE = {
  */
 export declare type PlainTextChunk = Chunk & {
   readonly metadata: {
-    readonly mimetype: {readonly type: 'text'; readonly subtype: 'plain'};
+    readonly mimetype: { readonly type: 'text'; readonly subtype: 'plain' };
   };
 };
 
@@ -415,5 +415,5 @@ export declare type PlainTextChunk = Chunk & {
  * Type of a text chunk.
  */
 export declare type TextChunk = Chunk & {
-  readonly metadata: {readonly mimetype: {readonly type: 'text'}};
+  readonly metadata: { readonly mimetype: { readonly type: 'text' } };
 };

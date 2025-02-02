@@ -6,9 +6,9 @@
 
 import 'jasmine';
 
-import {isProtoMessage} from './content.js';
-import {parseMimetype, stringifyMimetype} from './content.js';
-import {Mimetype} from '../interfaces.js';
+import { isProtoMessage } from './content.js';
+import { parseMimetype, stringifyMimetype } from './content.js';
+import { Mimetype } from '../interfaces.js';
 
 const mimetype = 'application/vnd.google.gdm.content+json';
 const mimetypeObj: Mimetype = {

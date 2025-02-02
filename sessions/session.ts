@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Action, ActionConfigs, ActionInputs, ActionOutputs, Chunk, Constructor, Content, InternalChunk, Placeholder, Session as SessionInterface, SessionContext, SessionContextMiddleware, SessionProvider } from '../interfaces.js';
+import { Action, ActionConfigs, ActionInputs, ActionOutputs, Chunk, Content, InternalChunk, Placeholder, Session as SessionInterface, SessionContext, SessionContextMiddleware, SessionProvider } from '../interfaces.js';
 import { isAsyncIterable, thenableAsyncIterable } from '../stream/stream.js';
 
 import { uniqueId } from './utils.js';

@@ -10,5 +10,9 @@ package-lock.json
 .vscode/
 **/*.orig
 **/*.js
-*.js
+**/*.js.map
+**/*.d.ts
+!rollup.config.js
+!eslint.config.js
 
+tsconfig.tsbuildinfo

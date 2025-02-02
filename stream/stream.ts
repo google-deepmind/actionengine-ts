@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Stream as StreamInterface, StreamItems} from './interfaces.js';
+import { Stream as StreamInterface, StreamItems } from './interfaces.js';
 
 // Polyfill for Promise.withResolvers
 if (typeof Promise.withResolvers === 'undefined') {
@@ -15,7 +15,7 @@ if (typeof Promise.withResolvers === 'undefined') {
       resolve = res;
       reject = rej;
     });
-    return {promise, resolve, reject} as unknown as PromiseWithResolvers<T>;
+    return { promise, resolve, reject } as unknown as PromiseWithResolvers<T>;
   };
 }
 
@@ -26,7 +26,7 @@ class Stream<T> implements StreamInterface<T> {
   private closed = false;
   private readonly children: StreamItems<T>[] = [];
   private readonly iterators: Array<StreamIterator<T>> = [];
-  private errorValue: string|undefined;
+  private errorValue: string | undefined;
 
   /**
    * Writes a value to the stream.
@@ -102,7 +102,7 @@ class Stream<T> implements StreamInterface<T> {
 }
 
 async function*
-    iteratorToIterable<T>(iter: AsyncIterator<T>): AsyncIterable<T> {
+  iteratorToIterable<T>(iter: AsyncIterator<T>): AsyncIterable<T> {
   while (true) {
     const result = await iter.next();
     if (result.done) break;
@@ -113,12 +113,12 @@ async function*
 class StreamIterator<T> implements AsyncIterator<StreamItems<T>> {
   private readonly writeQueue: StreamItems<T>[] = [];
   private readonly readQueue:
-      Array<PromiseWithResolvers<IteratorResult<StreamItems<T>>>> = [];
+    Array<PromiseWithResolvers<IteratorResult<StreamItems<T>>>> = [];
 
   constructor(
-      private readonly stream: Stream<T>,
-      current: StreamItems<T>[],
-      private readonly done: () => void,
+    private readonly stream: Stream<T>,
+    current: StreamItems<T>[],
+    private readonly done: () => void,
   ) {
     this.writeQueue = [...current];
   }
@@ -126,7 +126,7 @@ class StreamIterator<T> implements AsyncIterator<StreamItems<T>> {
   write(value: StreamItems<T>): void {
     const queued = this.readQueue.shift();
     if (queued) {
-      queued.resolve({done: false, value});
+      queued.resolve({ done: false, value });
     } else {
       this.writeQueue.push(value);
     }
@@ -135,7 +135,7 @@ class StreamIterator<T> implements AsyncIterator<StreamItems<T>> {
   close() {
     const queued = this.readQueue.shift();
     if (queued) {
-      queued.resolve({done: true, value: undefined});
+      queued.resolve({ done: true, value: undefined });
     }
   }
 
@@ -149,7 +149,7 @@ class StreamIterator<T> implements AsyncIterator<StreamItems<T>> {
   next(): Promise<IteratorResult<StreamItems<T>>> {
     const value = this.writeQueue.shift();
     if (value) {
-      return Promise.resolve({done: false, value});
+      return Promise.resolve({ done: false, value });
     }
     if (this.stream.getError() !== undefined) {
       return Promise.reject(this.stream.getError());
@@ -157,7 +157,7 @@ class StreamIterator<T> implements AsyncIterator<StreamItems<T>> {
     const done = this.writeQueue.length === 0 && this.stream.isClosed;
     if (done) {
       this.done();
-      return Promise.resolve({done, value: undefined});
+      return Promise.resolve({ done, value: undefined });
     }
     const next = Promise.withResolvers<IteratorResult<StreamItems<T>>>();
     this.readQueue.push(next);
@@ -166,7 +166,7 @@ class StreamIterator<T> implements AsyncIterator<StreamItems<T>> {
 
   return(value?: T): Promise<IteratorResult<StreamItems<T>>> {
     this.done();
-    return Promise.resolve({done: true, value});
+    return Promise.resolve({ done: true, value });
   }
 }
 
@@ -181,8 +181,8 @@ export function createStream<T>(): StreamInterface<T> {
  * implementing a `Symbol.asyncIterator` method.
  */
 export function isAsyncIterable<T = unknown>(
-    maybeAsyncIterable: AsyncIterable<T>|unknown,
-    ): maybeAsyncIterable is AsyncIterable<T> {
+  maybeAsyncIterable: AsyncIterable<T> | unknown,
+): maybeAsyncIterable is AsyncIterable<T> {
   const iter = maybeAsyncIterable as AsyncIterable<T>;
   return typeof iter[Symbol.asyncIterator] === 'function';
 }
@@ -208,12 +208,12 @@ async function* leaves<T>(items: StreamItems<T>): AsyncIterable<T> {
 
 /** A function to aggregate an AsyncIterable to a PromiseLike thenable. */
 export function thenableAsyncIterable<T, TResult1 = T[], TResult2 = never>(
-    this: AsyncIterable<T>,
-    onfulfilled?:|((value: T[]) => TResult1 | PromiseLike<TResult1>)|undefined|
+  this: AsyncIterable<T>,
+  onfulfilled?: | ((value: T[]) => TResult1 | PromiseLike<TResult1>) | undefined |
     null,
-    onrejected?:|((reason: unknown) => TResult2 | PromiseLike<TResult2>)|
-    undefined|null,
-    ): Promise<TResult1|TResult2> {
+  onrejected?: | ((reason: unknown) => TResult2 | PromiseLike<TResult2>) |
+    undefined | null,
+): Promise<TResult1 | TResult2> {
   const aggregate = async () => {
     const items = [];
     for await (const item of this) {
@@ -226,8 +226,8 @@ export function thenableAsyncIterable<T, TResult1 = T[], TResult2 = never>(
 
 /** Make an asyncIterable PromiseLike. */
 export function awaitableAsyncIterable<T>(iter: AsyncIterable<T>):
-    AsyncIterable<T>&PromiseLike<T[]> {
-  const then = iter as AsyncIterable<T>& PromiseLike<T[]>;
+  AsyncIterable<T> & PromiseLike<T[]> {
+  const then = iter as AsyncIterable<T> & PromiseLike<T[]>;
   then.then = thenableAsyncIterable;
   return then;
 }

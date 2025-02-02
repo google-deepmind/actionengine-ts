@@ -8,13 +8,13 @@ import { Chunk, InternalChunk, SessionContext, SessionContextMiddleware } from "
 import { chunkText } from "../content/content.js";
 
 class DebugContext implements SessionContext {
-    constructor(private readonly context: SessionContext) {}
+    constructor(private readonly context: SessionContext) { }
     read(id: string): AsyncIterable<Chunk> {
         async function* readAndLog(context: SessionContext) {
-         for await (const chunk of context.read(id)) {
-            console.log(`Reading from ${id}`, chunkText(chunk));
-            yield chunk;
-         }
+            for await (const chunk of context.read(id)) {
+                console.log(`Reading from ${id}`, chunkText(chunk));
+                yield chunk;
+            }
         }
         return readAndLog(this.context);
     }

@@ -4,16 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Chunk, ChunkMetadata, Content, ROLE} from '../interfaces.js';
-import {createStream, isAsyncIterable} from '../stream/index.js';
+import { Chunk, ChunkMetadata, Content, ROLE } from '../interfaces.js';
+import { createStream, isAsyncIterable } from '../stream/index.js';
 
-import {audioChunk, blobChunk, fetchChunk, imageChunk, isChunk, textChunk, videoChunk, withMetadata,} from './content.js';
+import { audioChunk, blobChunk, fetchChunk, imageChunk, isChunk, textChunk, videoChunk, withMetadata, } from './content.js';
 
 /** Transform a series of unknown values to chunks with the exception of str. */
 function transformToContent(
-    value: unknown,
-    metadataFn?: (chunk: Chunk) => ChunkMetadata,
-    ): Content {
+  value: unknown,
+  metadataFn?: (chunk: Chunk) => ChunkMetadata,
+): Content {
   if (typeof window !== 'undefined') {
     if (value instanceof HTMLImageElement) {
       value = imageChunk(value);
@@ -40,20 +40,20 @@ function transformToContent(
   if (value instanceof Promise) {
     const pl = createStream<Chunk>();
     value
-        .then((v) => {
-          if (isChunk(v)) {
-            if (metadataFn) {
-              v = withMetadata(v, metadataFn(v));
-            }
-          } else {
-            v = transformToContent(v, metadataFn);
+      .then((v) => {
+        if (isChunk(v)) {
+          if (metadataFn) {
+            v = withMetadata(v, metadataFn(v));
           }
-          pl.write(v);
-          pl.close();
-        })
-        .catch((err: string) => {
-          pl.error(err);
-        });
+        } else {
+          v = transformToContent(v, metadataFn);
+        }
+        pl.write(v);
+        pl.close();
+      })
+      .catch((err: string) => {
+        pl.error(err);
+      });
     value = pl;
   }
   if (!assertIsContent(value)) {
@@ -67,10 +67,10 @@ function transformToContent(
  * metadata.
  */
 export function promptLiteralWithMetadata(
-    metadataFn?: (chunk: Chunk) => ChunkMetadata,
+  metadataFn?: (chunk: Chunk) => ChunkMetadata,
 ) {
   function prompt(
-      strings: TemplateStringsArray, ...values: unknown[]): Content {
+    strings: TemplateStringsArray, ...values: unknown[]): Content {
     const node: Content[] = [];
     const l = values.length;
     let str = '';
@@ -130,39 +130,39 @@ export const prompt = promptLiteralWithMetadata();
 /**
  * Template literal for constructing a prompt but always with user role.
  */
-export const userPrompt = promptLiteralWithMetadata(() => ({role: ROLE.USER}));
+export const userPrompt = promptLiteralWithMetadata(() => ({ role: ROLE.USER }));
 /**
  * Template literal for constructing a prompt but always with system role.
  */
 export const systemPrompt = promptLiteralWithMetadata(() => ({
-                                                        role: ROLE.SYSTEM,
-                                                      }));
+  role: ROLE.SYSTEM,
+}));
 /**
  * Template literal for constructing a prompt but always with assistant role.
  */
 export const assistantPrompt = promptLiteralWithMetadata(() => ({
-                                                           role: ROLE.ASSISTANT,
-                                                         }));
+  role: ROLE.ASSISTANT,
+}));
 /**
  * Template literal for constructing a prompt but always with context role.
  */
 export const contextPrompt = promptLiteralWithMetadata(() => ({
-                                                         role: ROLE.CONTEXT,
-                                                       }));
+  role: ROLE.CONTEXT,
+}));
 
 /**
  * Transforms a Content to a new Content with the given metadata.
  */
 export function promptWithMetadata(
-    prompt: Content,
-    metadata: ChunkMetadata,
-    ): Content {
+  prompt: Content,
+  metadata: ChunkMetadata,
+): Content {
   if (isChunk(prompt)) {
     const chunk = withMetadata(prompt, metadata);
     return chunk;
   } else if (prompt instanceof Array) {
     const list: Content = prompt.map(
-        (child) => promptWithMetadata(child, metadata),
+      (child) => promptWithMetadata(child, metadata),
     );
     return list;
   } else if (isAsyncIterable(prompt)) {

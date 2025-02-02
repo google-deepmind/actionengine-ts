@@ -8,8 +8,8 @@ import dts from 'rollup-plugin-dts';
 const config = [
   {
     input: './dist/index.d.ts',
-    output: [{file: './dist/aiae.d.ts', format: 'es'}],
-    plugins: [dts({respectExternal: true})],
+    output: [{ file: './dist/aiae.d.ts', format: 'es' }],
+    plugins: [dts({ respectExternal: true })],
   },
 ];
 

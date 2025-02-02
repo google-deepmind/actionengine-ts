@@ -34,7 +34,7 @@ class LocalContext implements SessionContext {
         }
         this.sequenceOrder.set(id, chunk.seq);
         // Skip writing empty data and ref as it is just a close signal.
-        if(chunk.data !== undefined || chunk.ref !== undefined) {
+        if (chunk.data !== undefined || chunk.ref !== undefined) {
             pl.write(chunk);
         }
         if (chunk.continued !== true) {
@@ -42,7 +42,7 @@ class LocalContext implements SessionContext {
         }
     }
     error(id: string, reason?: string) {
-        let pl = this.nodeMap.get(id);
+        const pl = this.nodeMap.get(id);
         if (pl === undefined) {
             throw new Error(`No such id exists ${id}`);
         }

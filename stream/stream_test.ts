@@ -6,9 +6,9 @@
 
 import 'jasmine';
 
-import {chunkText, textChunk} from '../content/index.js';
-import {Chunk} from '../interfaces.js';
-import {createStream} from './stream.js';
+import { chunkText, textChunk } from '../content/index.js';
+import { Chunk } from '../interfaces.js';
+import { createStream } from './stream.js';
 
 describe('createStream<Chunk>', () => {
   it('can be written to with chunks', async () => {
@@ -91,7 +91,7 @@ describe('createStream<Chunk>', () => {
 
     p.write(textChunk('hello'));
     await (async () => {
-      // tslint:disable-next-line:no-unused-variable
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       for await (const chunk of p) {
         break;
       }
@@ -116,6 +116,6 @@ describe('createStream<Chunk>', () => {
 
 /** Access non-public fields of the stream for testing. */
 interface StreamApi {
-  // tslint:disable-next-line:no-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly iterators: any[];
 }
