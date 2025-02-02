@@ -1,0 +1,9 @@
+/**
+ * @fileoverview Add nodejs polyfills.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import {Blob} from 'blob-polyfill';
+import WebSocket from 'ws';
+

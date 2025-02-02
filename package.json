@@ -1,0 +1,41 @@
+{
+  "name": "aiae",
+  "version": "0.0.1",
+  "author": "Google DeepMind <no-reply@google.com>",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/aiae.js",
+    "./node": "./dist/aiae.node.js"
+  },
+  "types": "index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/google-deepmind/gemini-ts"
+  },
+  "scripts": {
+    "build": "esbuild --bundle index.ts --format=esm --outfile=dist/aiae.js --sourcemap",
+    "build:node": "npm run build && cat node.js.polyfill dist/aiae.js > dist/aiae.node.js",
+    "build:typings": "tsc --outDir ./dist --declaration --emitDeclarationOnly",
+    "build:dts": "npm run build:typings && rollup -c rollup.config.ts",
+    "dev": "npm install && concurrently \"npm run build -- --watch\" \"tsc --watch\" \"esbuild --servedir=. --serve=:5432 --watch\" \"npm run dev:info\"",
+    "dev:info": "sleep 3 && echo \"\n\nOpen demos at http://$(hostname):5432/examples\n\n\"",
+    "test": "tsc && jasmine --config=jasmine.json",
+    "test:watch": "npm install && nodemon -e ts --exec \"npm run test\"",
+    "publish": "npm run build:node && npm run build:dts"
+  },
+  "dependencies": {
+    "blob-polyfill": "^9.0.20240710",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/jasmine": "^5.1.4",
+    "concurrently": "^9.0.1",
+    "esbuild": "0.20.2",
+    "jasmine": "^5.2.0",
+    "nodemon": "^3.1.7",
+    "rollup": "^4.24.0",
+    "rollup-plugin-dts": "^6.1.1",
+    "typescript": "^5.5.4"
+  }
+}
