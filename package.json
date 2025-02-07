@@ -26,6 +26,7 @@
     "publish": "npm run build:node && npm run build:dts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "blob-polyfill": "^9.0.20240710",
     "ws": "^8.18.0"
   },

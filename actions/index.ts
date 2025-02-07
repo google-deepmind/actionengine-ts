@@ -6,3 +6,4 @@
 
 export * from "./generate_content.js";
 export * from "./toy.js";
+export * as google from './google/index.js';
