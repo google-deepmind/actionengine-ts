@@ -110,21 +110,6 @@ class Session implements SessionInterface {
         }
         return outs;
     }
-
-    // async run<T extends Chunk, U extends Chunk>(processor: Processor<T,U>, inputs: Dict<ReadableStream<T>>, outputs: Dict<WritableStream<U>>): Promise<void>;
-    // async run<T extends Action>(
-    //     action: T, inputs: ActionInputs<T>,
-    //     outputs: ActionOutputs<T>): Promise<void>;
-    // async run(
-    //     actionOrProcessor: Action | Processor, inputs: Dict<ReadableStream<Chunk>>, outputs: Dict<WritableStream<Chunk>>): Promise<void> {
-    //     // TODO(doug): Verify that the inputs and outputs are in the current session
-    //     // context.
-    //     if (isAction(actionOrProcessor)) {
-    //         await actionOrProcessor.run(this, inputs, outputs);
-    //         return;
-    //     }
-    //     await writeOutputs(actionOrProcessor(joinInputs(inputs)), outputs);
-    // }
  
     async close(): Promise<void> {
         await this.context.close();
