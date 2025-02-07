@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Chunk, InternalChunk, SessionContext, SessionContextMiddleware } from "../interfaces.js";
-import { chunkText } from "../content/content.js";
+import { Chunk, SessionContext, SessionContextMiddleware, SessionWriteOptions } from "../../interfaces.js";
+import { chunkText } from "../../content/content.js";
 
 class DebugContext implements SessionContext {
     constructor(private readonly context: SessionContext) { }
@@ -18,9 +18,9 @@ class DebugContext implements SessionContext {
         }
         return readAndLog(this.context);
     }
-    async write(id: string, chunk: InternalChunk): Promise<void> {
-        console.log(`Writing ${id}`, chunkText(chunk), chunk.seq, chunk.continued);
-        await this.context.write(id, chunk);
+    async write(id: string, chunk: Chunk, options?: SessionWriteOptions): Promise<void> {
+        console.log(`Writing ${id}`, chunkText(chunk), options?.seq, options?.continued);
+        await this.context.write(id, chunk, options);
     }
     error(id: string, reason?: string): void {
         console.error(reason);

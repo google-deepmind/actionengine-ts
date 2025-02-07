@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { InternalChunk, Chunk, SessionContext } from "../interfaces.js";
+import { Chunk, SessionContext, SessionWriteOptions } from "../interfaces.js";
 import { createStream } from "../stream/stream.js";
 import { Stream } from "../stream/interfaces.js";
 import { sessionProvider } from "./session.js";
@@ -20,7 +20,7 @@ class LocalContext implements SessionContext {
         return pl;
     }
 
-    async write(id: string, chunk: InternalChunk): Promise<void> {
+    async write(id: string, chunk: Chunk, options?: SessionWriteOptions): Promise<void> {
         let pl = this.nodeMap.get(id);
         if (pl === undefined) {
             pl = this.createStream(id);
@@ -29,15 +29,17 @@ class LocalContext implements SessionContext {
         if (lastSeq === undefined) {
             throw new Error(`Sequence not found for ${id}`);
         }
-        if ((lastSeq + 1) !== chunk.seq) {
-            throw new Error(`Out of order sequence writes not yet supported. last seq ${lastSeq}, current seq ${chunk.seq}`);
+        const seq = options?.seq || 0;
+        if ((lastSeq + 1) !== seq) {
+            throw new Error(`Out of order sequence writes not yet supported. last seq ${lastSeq}, current seq ${seq}`);
         }
-        this.sequenceOrder.set(id, chunk.seq);
+        this.sequenceOrder.set(id, seq);
         // Skip writing empty data and ref as it is just a close signal.
         if (chunk.data !== undefined || chunk.ref !== undefined) {
             pl.write(chunk);
         }
-        if (chunk.continued !== true) {
+        const continued = options?.continued || false;
+        if (continued !== true) {
             pl.close();
         }
     }

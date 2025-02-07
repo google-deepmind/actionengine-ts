@@ -10,6 +10,7 @@ export type StreamItems<T> = T | AsyncIterable<StreamItems<T>> | StreamItems<T>[
 
 export interface WritableStream<T> {
     write(value: StreamItems<T>): void;
+    writeAndClose(value: StreamItems<T>): void;
     close(): void;
     error(reason?: string): void;
 }

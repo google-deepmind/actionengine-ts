@@ -34,11 +34,8 @@ describe('createStream<Chunk>', () => {
     p.close();
 
     let text = '';
-    for await (const arr of p) {
-      expect(arr).toBeInstanceOf(Array);
-      for (const chunk of arr as unknown as Chunk[]) {
-        text += chunkText(chunk);
-      }
+    for await (const chunk of p) {
+      text += chunkText(chunk);
     }
     expect(text).toBe('hello there');
   });
@@ -68,7 +65,7 @@ describe('createStream<Chunk>', () => {
     const a = (async () => {
       let text = '';
       for await (const chunk of p) {
-        text += chunkText(chunk as Chunk);
+        text += chunkText(chunk);
       }
       return text;
     })();
@@ -76,7 +73,7 @@ describe('createStream<Chunk>', () => {
     const b = (async () => {
       let text = '';
       for await (const chunk of p) {
-        text += chunkText(chunk as Chunk);
+        text += chunkText(chunk);
       }
       return text;
     })();

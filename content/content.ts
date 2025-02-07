@@ -4,7 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Chunk, RefChunk, DataChunk, ChunkMetadata, Mimetype } from '../interfaces.js';
+import {Chunk, RefChunk, DataChunk, ChunkMetadata, Mimetype} from '../interfaces.js';
+
+/** Role enum definition. */
+export enum ROLE {
+    USER = 'USER',
+    ASSISTANT = 'ASSISTANT',
+    SYSTEM = 'SYSTEM',
+    CONTEXT = 'CONTEXT',
+}
+/** Role of the chunk as a type. */
+export declare type Role = `${ROLE}`;
 
 /**
  * Type assertion the chunk is a text.
@@ -173,7 +183,7 @@ export async function imageChunk(
         () => {
           resolve();
         },
-        { once: true },
+        {once: true},
       );
     });
   }
@@ -216,7 +226,7 @@ async function captureMediaFromElement(
 
   const blob = new Promise<Blob>((resolve) => {
     mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type });
+      const blob = new Blob(chunks, {type});
       resolve(blob);
     };
   });
@@ -340,9 +350,9 @@ export function stringifyMimetype(mimetype?: Mimetype): string {
  */
 export function parseMimetype(mimetype?: string): Mimetype {
   if (!mimetype) {
-    return { type: 'application', subtype: 'octet-stream' };
+    return {type: 'application', subtype: 'octet-stream'};
   }
-  let parameters: { [key: string]: string } | undefined = undefined;
+  let parameters: {[key: string]: string} | undefined = undefined;
   const paramParts = mimetype.split(';');
   if (paramParts.length > 1) {
     mimetype = mimetype.substring(0, paramParts[0].length);
@@ -407,7 +417,7 @@ export const TEXT_MIME_TYPE = {
  */
 export declare type PlainTextChunk = Chunk & {
   readonly metadata: {
-    readonly mimetype: { readonly type: 'text'; readonly subtype: 'plain' };
+    readonly mimetype: {readonly type: 'text'; readonly subtype: 'plain'};
   };
 };
 
@@ -415,5 +425,5 @@ export declare type PlainTextChunk = Chunk & {
  * Type of a text chunk.
  */
 export declare type TextChunk = Chunk & {
-  readonly metadata: { readonly mimetype: { readonly type: 'text' } };
+  readonly metadata: {readonly mimetype: {readonly type: 'text'}};
 };

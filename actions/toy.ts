@@ -5,8 +5,7 @@
  */
 
 import { Input, Output, Action, Session } from '../interfaces.js';
-import { chunkText, textChunk } from '../content/content.js';
-import { ROLE } from '../interfaces.js';
+import { chunkText, textChunk, ROLE} from '../content/content.js';
 
 /** Reverse some content. */
 export class ReverseContent extends Action {

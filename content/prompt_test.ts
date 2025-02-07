@@ -6,7 +6,7 @@
 
 import 'jasmine';
 
-import { Chunk } from '../interfaces.js';
+import { Chunk, Content } from '../interfaces.js';
 import { createStream } from '../stream/stream.js';
 import { ignoreFields } from '../testing/matchers.js';
 
@@ -14,6 +14,12 @@ import { audioChunk, fetchChunk, imageChunk, textChunk, videoChunk, } from './co
 import { prompt, promptWithMetadata } from './prompt.js';
 
 const isBrowser = typeof window !== 'undefined';
+
+async function asArray(content: Content): Promise<Array<Chunk>> {
+  const s = createStream<Chunk>();
+  s.writeAndClose(content);
+  return await s;
+}
 
 describe('prompt', () => {
   beforeEach(() => {
@@ -74,8 +80,8 @@ describe('prompt', () => {
   });
 
   it('converts async strings to a node graph', async () => {
-    const result = await prompt`hello ${Promise.resolve('world')}`;
-    expect<unknown>(result).toEqual([textChunk('hello '), textChunk('world')]);
+    const result = prompt`hello ${Promise.resolve('world')}`;
+    expect<unknown>(await asArray(result)).toEqual([textChunk('hello '), textChunk('world')]);
   });
 
   if (isBrowser) {
@@ -130,10 +136,10 @@ describe('prompt', () => {
     );
     const result = prompt`describe this content: ${fetchResponse()}`;
 
-    const resultTree = await result;
+    const resultList = await asArray(result);
     const fChunk = await fetchChunk(fetchResponse());
 
-    expect<unknown>(resultTree).toEqual([
+    expect<unknown>(resultList).toEqual([
       textChunk('describe this content: '), fChunk
     ]);
   });

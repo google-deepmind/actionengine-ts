@@ -19,26 +19,36 @@ class EchoAction extends aiae.Action {
   }
 }
 
+const echoProcessor: aiae.Processor = async function * (chunks: aiae.ProcessorChunks<"prompt"|"response">) {
+  for await (const [k,c] of chunks) {
+    if (k === 'prompt') {
+      yield ['response', c];
+    }
+  }
+}
+
 async function main() {
-  const session = aiae.sessions.fake();
-  const userPrompt = session.placeholder();
+  const echo = new EchoAction();
+  const reverse = new aiae.actions.ReverseContent();
+
+  const session = aiae.sessions.local(aiae.sessions.middleware.debug);
+  const userPrompt = session.createPipe();
   void userPrompt.write(aiae.content.textChunk('Hello!'));
   userPrompt.close();
 
   const inputs = { prompt: userPrompt };
-  const outputs = { response: session.placeholder() };
 
-  void session.run(EchoAction, inputs, outputs);
+  const outputs = session.run(echo, inputs, ['response']);
 
   for await (const chunk of outputs.response) {
     console.log(aiae.content.chunkText(chunk));
   }
 
-  const outs = { response: session.placeholder() };
-  void session.run(aiae.actions.GenerateContent, inputs, outs);
-  void session.run(aiae.actions.ReverseContent, inputs, outs);
+  const outs = session.run(reverse, inputs, ['response']);
+  const outs2 = session.run(echoProcessor, inputs, ['response']);
+  const chunks = aiae.async.merge(outs.response, outs2.response);
 
-  for await (const chunk of outs.response) {
+  for await (const chunk of chunks) {
     console.log(aiae.content.chunkText(chunk));
   }
 }

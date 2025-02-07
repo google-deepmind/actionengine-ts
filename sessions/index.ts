@@ -6,5 +6,4 @@
 
 export * from "./session.js";
 export * from "./local.js";
-export * from "./debug_middleware.js";
-export * from "./fake.js";
+export * as middleware from "./middleware/index.js";

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Chunk, ChunkMetadata, Content, ROLE } from '../interfaces.js';
+import { Chunk, ChunkMetadata, Content } from '../interfaces.js';
 import { createStream, isAsyncIterable } from '../stream/index.js';
 
-import { audioChunk, blobChunk, fetchChunk, imageChunk, isChunk, textChunk, videoChunk, withMetadata, } from './content.js';
+import { audioChunk, blobChunk, fetchChunk, ROLE, imageChunk, isChunk, textChunk, videoChunk, withMetadata, } from './content.js';
 
 /** Transform a series of unknown values to chunks with the exception of str. */
 function transformToContent(

@@ -42,6 +42,14 @@ class Stream<T> implements StreamInterface<T> {
   }
 
   /**
+   * Write and close.
+   */
+  writeAndClose(value: StreamItems<T>): void {
+    this.write(value);
+    this.close();
+  }
+
+  /**
    * Closes the stream.
    */
   close(): void {
@@ -93,9 +101,17 @@ class Stream<T> implements StreamInterface<T> {
   }
 
   [Symbol.asyncIterator](): AsyncIterator<T> {
-    const stream = iteratorToIterable(this.rawAsyncIterator());
-    const items = leaves(stream)[Symbol.asyncIterator]();
-    return items;
+    const iter = this.rawAsyncIterator();
+    const stream = iteratorToIterable(iter);
+    const chunks = (async function * () {
+      try {
+        yield* leaves(stream);
+      } finally {
+        // Need to explicitly release this iterator memory.
+        iter.return();
+      }
+    })();
+    return chunks[Symbol.asyncIterator]();
   }
 
   then = thenableAsyncIterable;
