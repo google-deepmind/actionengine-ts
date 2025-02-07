@@ -19,8 +19,10 @@ class EchoAction extends aiae.Action {
   }
 }
 
-const echoProcessor: aiae.Processor = async function * (chunks: aiae.ProcessorChunks<"prompt"|"response">) {
-  for await (const [k,c] of chunks) {
+
+const echoProcessor: aiae.Processor<'prompt', 'response'> =
+    async function*(chunks) {
+  for await (const [k, c] of chunks) {
     if (k === 'prompt') {
       yield ['response', c];
     }
@@ -50,14 +52,6 @@ async function main() {
 
   for await (const chunk of chunks) {
     console.log(aiae.content.chunkText(chunk));
-  }
-
-  const API_KEY = prompt('API KEY'); 
-  const flashGenerate = new aiae.actions.google.GoogleGenerateContent(API_KEY, "gemini-1.5-flash");
-  const outs3 = session.run(flashGenerate, inputs, ['response']);
-
-  for await (const chunk of outs3.response) {
-    console.log("FROM GENAI", aiae.content.chunkText(chunk));
   }
 
 }

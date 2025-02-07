@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Processor, Dict, Action, ActionInputs, ActionOutputs, Chunk, Content, Pipe, Session as SessionInterface, SessionContext, SessionContextMiddleware, SessionProvider, SessionWriteOptions, ActionConstraints, ProcessorConstraints, ProcessorInputs, ProcessorOutputs } from '../interfaces.js';
+import { Processor, Dict, Action, Chunk, Content, Pipe, Session as SessionInterface, SessionContext, SessionContextMiddleware, SessionProvider, SessionWriteOptions } from '../interfaces.js';
 import { isAsyncIterable, thenableAsyncIterable, WritableStream, ReadableStream } from '../stream/index.js';
 import {merge} from '../async/index.js';
 
@@ -65,7 +65,7 @@ class SessionPipe implements Pipe {
     }
 
     async close() {
-        // TODO(doug): Should this close by id in the context?
+        // TODO(dougfritz): Should this close by id in the context?
         if (this.closed) {
             console.warn('Already closed.');
             return;
@@ -78,7 +78,10 @@ class SessionPipe implements Pipe {
     then = thenableAsyncIterable;
 }
 
-const emptyChunk = {metadata: {}, data: new Uint8Array()};
+const emptyChunk = {
+  metadata: {},
+  data: new Uint8Array(0)
+};
 
 function isAction(maybeAction: Action|unknown): maybeAction is Action {
     if ((maybeAction as Action).run) {
@@ -94,13 +97,10 @@ class Session implements SessionInterface {
     createPipe(): Pipe {
         return new SessionPipe(this.context);
     }
-    
-    run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs<T>, outputs: U[]): Pick<ActionOutputs<T>,U>;
-    // Runs a processor which is a convenience form transformed to an Action.
-    run<T extends Processor, U extends ProcessorConstraints<T> = ProcessorConstraints<T>>(processor: T, inputs: ProcessorInputs<T>, outputs: U[]): Pick<ProcessorOutputs<T>,U>;
+
     run(
         actionOrProcessor: Action | Processor, inputs: Dict<ReadableStream<Chunk>>, outputs: string[]): Dict<ReadableStream<Chunk>> {
-        // TODO(doug): Verify that the inputs and outputs are in the current session
+        // TODO(dougfritz): Verify that the inputs and outputs are in the current session
         const outs = Object.fromEntries(outputs.map((k) => [k, this.createPipe()]));
         // context.
         if (isAction(actionOrProcessor)) {

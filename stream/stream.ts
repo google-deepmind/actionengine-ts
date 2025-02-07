@@ -108,7 +108,9 @@ class Stream<T> implements StreamInterface<T> {
         yield* leaves(stream);
       } finally {
         // Need to explicitly release this iterator memory.
-        iter.return();
+        if (iter.return) {
+          void iter.return();
+        }
       }
     })();
     return chunks[Symbol.asyncIterator]();

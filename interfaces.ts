@@ -85,17 +85,25 @@ export type ActionConstraints<T extends Action> = keyof ActionOutputs<T> & strin
 // Processor Interfaces Start
 
 /** Simplified transform of a unified Chunk stream. */
-export interface Processor<T extends [string, Chunk] = [string, Chunk], U extends [string, Chunk] = [string, Chunk]> {
-    (stream: AsyncIterable<T>): AsyncGenerator<U>
+export interface Processor<I extends string = string, O extends string = string,
+                                                                T extends
+                               Chunk = Chunk, U extends Chunk = Chunk> {
+  (stream: AsyncIterable<[I, T]>): AsyncGenerator<[O, U]>
 }
 
 /** Processor Chunks. */
 export type ProcessorChunks<T extends string = string, U extends Chunk = Chunk> = AsyncIterable<[T, U]>;
 /** Input dict to a processor. */
-export type ProcessorInputs<T extends Processor> = T extends Processor<infer U> ? Readonly<Record<U[0], AsyncIterable<U[1]>>> : never;
+export type ProcessorInputs<T extends Processor> =
+    T extends Processor<infer I, string, infer X, Chunk>?
+    {[P in I]: AsyncIterable<X>} :
+    never;
 /** Output dict to a processor. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export type ProcessorOutputs<T extends Processor> = T extends Processor<infer U, infer V> ? Readonly<Record<V[0], ReadableStream<V[1]>>> : never;
+ 
+export type ProcessorOutputs<T extends Processor> =
+    T extends Processor<string, infer O, Chunk, infer Y>?
+    {[P in O]: ReadableStream<Y>} :
+    never;
 export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 // Processor Interfaces End
 
@@ -108,7 +116,11 @@ export interface Session {
     // Runs an action.
     run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs<T>, outputs: U[]): Pick<ActionOutputs<T>,U>;
     // Runs a processor which is a convenience form transformed to an Action.
-    run<T extends Processor, U extends ProcessorConstraints<T> = ProcessorConstraints<T>>(processor: T, inputs: ProcessorInputs<T>, outputs: U[]): Pick<ProcessorOutputs<T>,U>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    run<T extends Processor<any, any>,
+                  U extends ProcessorConstraints<T> = ProcessorConstraints<T>>(
+        processor: T, inputs: ProcessorInputs<T>,
+        outputs: U[]): Pick<ProcessorOutputs<T>, U>;
     // Closes the session and all open streams or running actions.
     close(): Promise<void>;
 }

@@ -31,7 +31,7 @@ export class GoogleGenerateContent extends GenerateContent {
         this.model = genAI(apiKey).getGenerativeModel({model});
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     override async run(session: Session, inputs: { prompt: Input }, outputs: { response: Output }): Promise<void> {
         const prompt = await inputs.prompt;
         const promptString = prompt.map((c) => chunkText(c)).join("");
