@@ -1,5 +1,5 @@
 // Create an OAuth client ID at https://console.cloud.google.com/apis/credentials.
-const OAUTH_CLIENT_ID = '309803961959-d65n7j6arev0o2iess16ljmjaqq7oms1.apps.googleusercontent.com';
+const OAUTH_CLIENT_ID = '';
 const OAUTH_SCOPES = ['https://www.googleapis.com/auth/documents.readonly'];
 
 function oauthSignIn() {
