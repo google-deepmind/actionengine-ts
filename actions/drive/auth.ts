@@ -1,5 +1,5 @@
 // Create an OAuth client ID at https://console.cloud.google.com/apis/credentials.
-const OAUTH_CLIENT_ID = '';
+const OAUTH_CLIENT_ID = '309803961959-d65n7j6arev0o2iess16ljmjaqq7oms1.apps.googleusercontent.com';
 const OAUTH_SCOPES = ['https://www.googleapis.com/auth/documents.readonly'];
 
 function oauthSignIn() {
@@ -9,6 +9,9 @@ function oauthSignIn() {
   form.setAttribute('action', oauth2Endpoint);
   var params: Record<string, string> = {
 		'client_id': OAUTH_CLIENT_ID,
+    // TODO: update with the URL if this is hosted persistently.
+    // Register the domain under "Authorized JavaScript origins" and
+    // "Authorized redirect URIs" in the Google Cloud console.
 		'redirect_uri': 'http://localhost:5432/examples/drive',
 		'response_type': 'token',
 		'scope': OAUTH_SCOPES.join(' '),
