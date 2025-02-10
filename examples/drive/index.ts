@@ -5,8 +5,8 @@
  */
 
 import * as aiae from '../../index.js';
-import {maybeAuthenticate} from './auth.js';
-import {documentToText, fetchDocument} from './drive_lib.js';
+import {maybeAuthenticate} from '../../actions/drive/auth.js';
+import {documentToText, fetchDocument} from '../../actions/drive/drive.js';
 
 const docToText: aiae.Processor<'docUrl', 'docText'> =
     async function*(chunks) {
