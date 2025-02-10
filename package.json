@@ -14,16 +14,16 @@
     "url": "git://github.com/google-deepmind/gemini-ts"
   },
   "scripts": {
-    "build": "esbuild --bundle index.ts --format=esm --outfile=dist/aiae.js --sourcemap",
-    "build:node": "npm run build && cat node.js.polyfill dist/aiae.js > dist/aiae.node.js",
+    "build:bundle": "esbuild --bundle index.ts --format=esm --outfile=dist/aiae.js --sourcemap",
+    "build:node": "npm run build:bundle && cat node.js.polyfill dist/aiae.js > dist/aiae.node.js",
     "build:typings": "tsc --outDir ./dist --declaration --emitDeclarationOnly",
-    "build:dts": "npm run build:typings && rollup -c rollup.config.ts",
+    "build": "npm run build:node && npm run build:typings && rollup -c rollup.config.js",
     "fix": "npx eslint --fix '**/*.ts'",
-    "dev": "npm install && concurrently \"npm run build -- --watch\" \"tsc --watch\" \"esbuild --servedir=. --serve=:5432 --watch\" \"npm run dev:info\"",
+    "dev": "npm install && concurrently \"npm run build:bundle -- --watch\" \"tsc --watch\" \"esbuild --servedir=. --serve=:5432 --watch\" \"npm run dev:info\"",
     "dev:info": "sleep 3 && echo \"\n\nOpen demos at http://$(hostname):5432/examples\n\n\"",
     "test": "tsc && jasmine --config=jasmine.json",
     "test:watch": "npm install && nodemon -e ts --exec \"npm run test\"",
-    "publish": "npm run build:node && npm run build:dts"
+    "publish": "npm run build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
