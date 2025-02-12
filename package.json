@@ -35,7 +35,7 @@
     "@types/jasmine": "^5.1.4",
     "@types/node": "^22.7.5",
     "concurrently": "^9.0.1",
-    "esbuild": "0.20.2",
+    "esbuild": ">=0.25.0",
     "eslint": "^9.19.0",
     "globals": "^15.14.0",
     "jasmine": "^5.2.0",
