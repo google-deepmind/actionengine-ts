@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Generate content.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import {Processor} from '../../interfaces.js';
+import {textChunk, chunkText} from '../../content/content.js';
+import { maybeAuthenticate } from './auth.js';
+
 const DOCS_API = 'https://docs.googleapis.com/v1/documents/';
 
 interface TextRun {
@@ -25,7 +35,7 @@ interface Document {
   body: Body;
 }
 
-export function documentToText(document: Document) {
+function documentToText(document: Document) {
   let documentText = '';
   documentText += document.title + '<br><br>';
   for (const content of document.body.content) {
@@ -40,13 +50,29 @@ export function documentToText(document: Document) {
   return documentText;
 }
 
-
-export async function fetchDocument(url: string) {
+async function fetchDocument(url: string) {
   const docsId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)[1];
   const docsApi = `${DOCS_API}${docsId}`;
-  var params = JSON.parse(localStorage.getItem('oauth2-test-params'));
+  const params = JSON.parse(localStorage.getItem('oauth2-test-params'));
   const response = await fetch(
     `${docsApi}?access_token=${params['access_token']}`);
   const documentData = await response.json();
   return documentData;
+}
+
+/** Converts a docUrl imput to docText. */
+export const docToText: Processor<'docUrl', 'docText'> =
+    async function*(chunks) {
+
+  maybeAuthenticate();
+
+  for await (const [k, c] of chunks) {
+    if (k === 'docUrl') {
+      const document = await fetchDocument(chunkText(c));
+      const documentText = documentToText(document);
+      yield ['docText', textChunk(documentText)];
+    } else {
+      yield [k, c];
+    }
+  }
 }
