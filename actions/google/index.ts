@@ -4,4 +4,4 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export * from './generate_content.js';
+export * as genai from './genai.js';
