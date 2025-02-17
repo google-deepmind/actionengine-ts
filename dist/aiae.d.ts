@@ -5,9 +5,9 @@
  */
 type StreamItems<T> = T | AsyncIterable<StreamItems<T>> | StreamItems<T>[];
 interface WritableStream<T> {
-    write(value: StreamItems<T>): void;
-    writeAndClose(value: StreamItems<T>): void;
-    close(): void;
+    write(value: StreamItems<T>): Promise<void>;
+    writeAndClose(value: StreamItems<T>): Promise<void>;
+    close(): Promise<void>;
     error(reason?: string): void;
 }
 type ReadableStream<T> = AsyncIterable<T> & PromiseLike<T[]>;
@@ -36,13 +36,11 @@ interface Mimetype {
     readonly subtype?: string;
     readonly prefix?: string;
     readonly suffix?: string;
-    readonly parameters?: {
-        readonly [key: string]: string;
-    };
+    readonly parameters?: Record<string, string>;
 }
 /** Chunk with metadata. */
 interface MetadataChunk {
-    readonly metadata: ChunkMetadata;
+    readonly metadata?: ChunkMetadata;
 }
 /** Chunk with bytes. */
 interface DataChunk extends MetadataChunk {
@@ -70,19 +68,13 @@ type ActionInputs<T extends Action> = T extends Action<infer U> ? U : never;
 type ActionOutputs<T extends Action> = T extends Action<infer U, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
 type ActionConstraints<T extends Action> = keyof ActionOutputs<T> & string;
 /** Simplified transform of a unified Chunk stream. */
-interface Processor<I extends string = string, O extends string = string, T extends Chunk = Chunk, U extends Chunk = Chunk> {
-    (stream: AsyncIterable<[I, T]>): AsyncGenerator<[O, U]>;
-}
+type Processor<I extends string = string, O extends string = string, T extends Chunk = Chunk, U extends Chunk = Chunk> = (stream: AsyncIterable<[I, T]>) => AsyncGenerator<[O, U]>;
 /** Processor Chunks. */
 type ProcessorChunks<T extends string = string, U extends Chunk = Chunk> = AsyncIterable<[T, U]>;
 /** Input dict to a processor. */
-type ProcessorInputs<T extends Processor> = T extends Processor<infer I, string, infer X, Chunk> ? {
-    [P in I]: AsyncIterable<X>;
-} : never;
+type ProcessorInputs<T extends Processor> = T extends Processor<infer I, string, infer X> ? Record<I, AsyncIterable<X>> : never;
 /** Output dict to a processor. */
-type ProcessorOutputs<T extends Processor> = T extends Processor<string, infer O, Chunk, infer Y> ? {
-    [P in O]: ReadableStream<Y>;
-} : never;
+type ProcessorOutputs<T extends Processor> = T extends Processor<string, infer O, Chunk, infer Y> ? Record<O, ReadableStream<Y>> : never;
 type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 interface Session {
     createPipe<T extends Chunk>(): Pipe<T>;
@@ -100,12 +92,8 @@ interface SessionContext {
     error(id: string, reason?: string): void;
     close(): Promise<void>;
 }
-interface SessionContextMiddleware {
-    (context: SessionContext): SessionContext;
-}
-interface SessionProvider {
-    (...middleware: SessionContextMiddleware[]): Session;
-}
+type SessionContextMiddleware = (context: SessionContext) => SessionContext;
+type SessionProvider = (...middleware: SessionContextMiddleware[]) => Session;
 
 /**
  * @fileoverview Utilities for processing content chunks.
@@ -276,6 +264,12 @@ declare function promptWithMetadata(prompt: Content, metadata: ChunkMetadata): C
 declare function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStreamAudioDestinationNode;
 /** Converts a Media Stream to audio chunks. */
 declare function mediaStreamToAudioChunks(media: MediaStream): AsyncGenerator<AudioChunk>;
+
+/**
+ * @fileoverview Utilities for processing content chunks.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 /**
  * Converts a mimetype to a string.
@@ -509,7 +503,7 @@ declare namespace index_d$2 {
 /**
  * Races a list of streams returning the first value to resolve from any stream.
  */
-declare function merge<T extends ReadonlyArray<AsyncIterator<unknown> | AsyncIterable<unknown>>>(...arr: [...T]): T[number];
+declare function merge<T extends readonly (AsyncIterator<unknown> | AsyncIterable<unknown>)[]>(...arr: [...T]): T[number];
 
 declare const index_d$1_merge: typeof merge;
 declare namespace index_d$1 {
