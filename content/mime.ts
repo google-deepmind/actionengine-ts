@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Utilities for processing content chunks.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { Mimetype } from "../interfaces";
 
 /**
