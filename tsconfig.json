@@ -9,8 +9,6 @@
         "jsx": "react",
         "jsxFactory": "element",
         "jsxFragmentFactory": "fragment",
-        "noEmit": true,
-        "noEmitOnError": false,
         "noErrorTruncation": false,
         "noFallthroughCasesInSwitch": true,
         "noImplicitOverride": true,
