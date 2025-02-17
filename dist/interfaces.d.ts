@@ -42,10 +42,10 @@ export interface RefChunk extends MetadataChunk {
 }
 /** Smallest unit of streamable information. */
 export type Chunk = DataChunk | RefChunk;
-export type Content = StreamItems<Chunk>;
-export type Input = ReadableStream<Chunk>;
-export type Output = WritableStream<Chunk>;
-export interface Pipe extends Input, Output {
+export type Content<T extends Chunk = Chunk> = StreamItems<T>;
+export type Input<T extends Chunk = Chunk> = ReadableStream<T>;
+export type Output<T extends Chunk = Chunk> = WritableStream<T>;
+export interface Pipe<T extends Chunk = Chunk> extends Input<T>, Output<T> {
 }
 export type Dict<T, U extends string = string> = Readonly<Record<U, T>>;
 type StreamTypeOfDict<T extends Dict<unknown>> = T extends Dict<infer U> ? U extends WritableStream<infer V> ? V : never : never;
@@ -71,7 +71,7 @@ export type ProcessorOutputs<T extends Processor> = T extends Processor<string, 
 } : never;
 export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 export interface Session {
-    createPipe(): Pipe;
+    createPipe<T extends Chunk>(): Pipe<T>;
     run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs<T>, outputs: U[]): Pick<ActionOutputs<T>, U>;
     run<T extends Processor<any, any>, U extends ProcessorConstraints<T> = ProcessorConstraints<T>>(processor: T, inputs: ProcessorInputs<T>, outputs: U[]): Pick<ProcessorOutputs<T>, U>;
     close(): Promise<void>;

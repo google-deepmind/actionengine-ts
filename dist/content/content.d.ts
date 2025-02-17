@@ -78,14 +78,6 @@ export declare function blobChunk(blob: Blob, metadata?: ChunkMetadata): Promise
  */
 export declare function withMetadata<T extends Chunk>(chunk: T, metadata: ChunkMetadata): T;
 /**
- * Converts a mimetype to a string.
- */
-export declare function stringifyMimetype(mimetype?: Mimetype): string;
-/**
- * Parses a mimetype from a string.
- */
-export declare function parseMimetype(mimetype?: string): Mimetype;
-/**
  * Returns true if the mimetype matches the given proto message type.
  */
 export declare function isProtoMessage(mimeType: Mimetype, messageType: string): boolean;
@@ -115,6 +107,16 @@ export declare type TextChunk = Chunk & {
     readonly metadata: {
         readonly mimetype: {
             readonly type: 'text';
+        };
+    };
+};
+/**
+ * Type of a audio chunk.
+ */
+export declare type AudioChunk = Chunk & {
+    readonly metadata: {
+        readonly mimetype: {
+            readonly type: 'audio';
         };
     };
 };
