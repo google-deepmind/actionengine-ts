@@ -82,7 +82,7 @@ export function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStr
 
                 const mimetypeParameters = chunk.metadata.mimetype.parameters;
                 // Use sample rate from chunk if present.
-                let chunkSampleRate = Number(mimetypeParameters?.rate);
+                let chunkSampleRate = Number(mimetypeParameters?.['rate']);
                 if (isNaN(chunkSampleRate)) {
                     chunkSampleRate = sampleRate;
                 }

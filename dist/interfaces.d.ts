@@ -51,7 +51,7 @@ export declare abstract class Action<T extends Dict<Input> = Dict<Input>, U exte
     abstract run(session: Session, inputs: T, outputs: U): Promise<void>;
 }
 export type ActionInputs<T extends Action> = T extends Action<infer U> ? U : never;
-export type ActionOutputs<T extends Action> = T extends Action<infer U, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
+export type ActionOutputs<T extends Action> = T extends Action<never, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
 export type ActionConstraints<T extends Action> = keyof ActionOutputs<T> & string;
 /** Simplified transform of a unified Chunk stream. */
 export type Processor<I extends string = string, O extends string = string, T extends Chunk = Chunk, U extends Chunk = Chunk> = (stream: AsyncIterable<[I, T]>) => AsyncGenerator<[O, U]>;
@@ -60,7 +60,7 @@ export type ProcessorChunks<T extends string = string, U extends Chunk = Chunk> 
 /** Input dict to a processor. */
 export type ProcessorInputs<T extends Processor> = T extends Processor<infer I, string, infer X> ? Record<I, AsyncIterable<X>> : never;
 /** Output dict to a processor. */
-export type ProcessorOutputs<T extends Processor> = T extends Processor<string, infer O, Chunk, infer Y> ? Record<O, ReadableStream<Y>> : never;
+export type ProcessorOutputs<T extends Processor> = T extends Processor<never, infer O, never, infer Y> ? Record<O, ReadableStream<Y>> : never;
 export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 export interface Session {
     createPipe<T extends Chunk>(): Pipe<T>;

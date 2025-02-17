@@ -75,8 +75,7 @@ export abstract class Action<T extends Dict<Input> = Dict<Input>, U extends Dict
 }
 
 export type ActionInputs<T extends Action> = T extends Action<infer U> ? U : never;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export type ActionOutputs<T extends Action> = T extends Action<infer U, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
+export type ActionOutputs<T extends Action> = T extends Action<never, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
 export type ActionConstraints<T extends Action> = keyof ActionOutputs<T> & string;
 // Action Interfaces End
 
@@ -95,9 +94,12 @@ export type ProcessorInputs<T extends Processor> =
 /** Output dict to a processor. */
  
 export type ProcessorOutputs<T extends Processor> =
-    T extends Processor<string, infer O, Chunk, infer Y>?
+    T extends Processor<never, infer O, never, infer Y>?
     Record<O, ReadableStream<Y>> :
     never;
+// export type ProcessorOutputs<T extends Processor> = T extends Processor<string, infer O, Chunk, infer Y> ?
+//   {[K in O]: ReadableStream<Y>} : 
+//   never;
 export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 // Processor Interfaces End
 

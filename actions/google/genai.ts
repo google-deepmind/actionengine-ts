@@ -119,8 +119,9 @@ export class Live extends AbstractLive {
                     continue;
                 }
             }
-            await outputs.context?.close();
-            await outputs.audio?.close();
+            // TODO(doug): When should this actually finish and close.
+            // await outputs.context?.close();
+            // await outputs.audio?.close();
         }
 
         void readAudio();

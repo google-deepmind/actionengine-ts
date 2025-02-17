@@ -196,50 +196,49 @@ export async function imageChunk(
   return await blobChunk(blob, metadata);
 }
 
-interface HTMLMediaElementWithCapture extends HTMLMediaElement {
-  captureStream?(): MediaStream | null;
-}
-
 // TODO(doug): Use media recorder for capturing content from media.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function captureMediaFromElement(
-  mediaElement: HTMLMediaElementWithCapture,
-  maxDurationMs = 0,
-): Promise<Blob> {
-  const stream = mediaElement.captureStream
-    ? mediaElement.captureStream()
-    : null;
-  if (!stream) {
-    throw new Error('Unable to capture media stream from element.');
-  }
+// interface HTMLMediaElementWithCapture extends HTMLMediaElement {
+//   captureStream?(): MediaStream | null;
+// }
+// 
+// async function captureMediaFromElement(
+//   mediaElement: HTMLMediaElementWithCapture,
+//   maxDurationMs = 0,
+// ): Promise<Blob> {
+//   const stream = mediaElement.captureStream
+//     ? mediaElement.captureStream()
+//     : null;
+//   if (!stream) {
+//     throw new Error('Unable to capture media stream from element.');
+//   }
 
-  const mediaRecorder = new MediaRecorder(stream);
-  const chunks: Blob[] = [];
+//   const mediaRecorder = new MediaRecorder(stream);
+//   const chunks: Blob[] = [];
 
-  let type = 'audio/ogg; codecs=opus';
+//   let type = 'audio/ogg; codecs=opus';
 
-  mediaRecorder.ondataavailable = (event) => {
-    chunks.push(event.data);
-    type = event.data.type;
-  };
+//   mediaRecorder.ondataavailable = (event) => {
+//     chunks.push(event.data);
+//     type = event.data.type;
+//   };
 
-  const blob = new Promise<Blob>((resolve) => {
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, {type});
-      resolve(blob);
-    };
-  });
+//   const blob = new Promise<Blob>((resolve) => {
+//     mediaRecorder.onstop = () => {
+//       const blob = new Blob(chunks, {type});
+//       resolve(blob);
+//     };
+//   });
 
-  mediaRecorder.start();
+//   mediaRecorder.start();
 
-  if (maxDurationMs) {
-    setTimeout(() => {
-      mediaRecorder.stop();
-    }, maxDurationMs);
-  }
+//   if (maxDurationMs) {
+//     setTimeout(() => {
+//       mediaRecorder.stop();
+//     }, maxDurationMs);
+//   }
 
-  return blob;
-}
+//   return blob;
+// }
 
 /**
  * Converts a audio to a chunk.
@@ -320,7 +319,7 @@ export function isProtoMessage(mimeType: Mimetype, messageType: string) {
   return (
     mimeType.type === 'application' &&
     mimeType.subtype === 'x-protobuf' &&
-    mimeType.parameters?.type === messageType
+    mimeType.parameters?.['type'] === messageType
   );
 }
 

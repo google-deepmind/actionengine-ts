@@ -20,6 +20,7 @@ export default tseslint.config(
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/restrict-template-expressions": "off",
       "@typescript-eslint/no-unnecessary-condition": "off",
+      "@typescript-eslint/dot-notation": "off",
     }
   },
 )

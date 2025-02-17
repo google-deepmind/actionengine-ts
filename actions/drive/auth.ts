@@ -54,7 +54,7 @@ export function maybeAuthenticate() {
 	while ((m = regex.exec(fragmentString)) !== null) {
 		params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
 	}
-	if (Object.keys(params).length > 0 && params.state) {
+	if (Object.keys(params).length > 0 && params['state']) {
 		const paramsJson = JSON.stringify(params);
 		localStorage.setItem('oauth2-test-params', paramsJson);
 	} else {

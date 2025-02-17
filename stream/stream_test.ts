@@ -88,8 +88,7 @@ describe('createStream<Chunk>', () => {
 
     await p.write(textChunk('hello'));
     await (async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      for await (const chunk of p) {
+      for await (const {} of p) {
         break;
       }
     })();
