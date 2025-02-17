@@ -6,3 +6,5 @@
 
 export * from './content.js';
 export * from './prompt.js';
+export * from './audio.js';
+export * from './mime.js';

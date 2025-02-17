@@ -59,10 +59,10 @@ export type Chunk = DataChunk | RefChunk;
 
 // ChunkStream Interfaces Start
 
-export type Content = StreamItems<Chunk>;
-export type Input = ReadableStream<Chunk>;
-export type Output = WritableStream<Chunk>
-export interface Pipe extends Input, Output {
+export type Content<T extends Chunk = Chunk> = StreamItems<T>;
+export type Input<T extends Chunk = Chunk> = ReadableStream<T>;
+export type Output<T extends Chunk = Chunk> = WritableStream<T>
+export interface Pipe<T extends Chunk = Chunk> extends Input<T>, Output<T> {
 }
 
 // ChunkStream Interfaces End
@@ -112,7 +112,7 @@ export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T
 export interface Session {
     // Returns a streaming pipe for reading and writing a stream in the context of the session.
     // Content will exist and can be read for as long as the session is open.
-    createPipe(): Pipe;
+    createPipe<T extends Chunk>(): Pipe<T>;
     // Runs an action.
     run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs<T>, outputs: U[]): Pick<ActionOutputs<T>,U>;
     // Runs a processor which is a convenience form transformed to an Action.

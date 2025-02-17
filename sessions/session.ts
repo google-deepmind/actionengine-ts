@@ -11,25 +11,25 @@ import {merge} from '../async/index.js';
 import { uniqueId } from './utils.js';
 
 
-class SessionPipe implements Pipe {
+class SessionPipe<T extends Chunk> implements Pipe<T> {
     private readonly id = uniqueId();
     private seq = 0;
     private closed = false;
 
     constructor(private readonly context: SessionContext) { }
 
-    [Symbol.asyncIterator](): AsyncIterator<Chunk> {
-        return this.context.read(this.id)[Symbol.asyncIterator]();
+    [Symbol.asyncIterator](): AsyncIterator<T> {
+        return (this.context.read(this.id) as AsyncIterable<T>)[Symbol.asyncIterator]();
     }
     
-    async writeAndClose(content: Content): Promise<void> {
+    async writeAndClose(content: Content<T>): Promise<void> {
         if (content instanceof Array) {
             const l = content.length;
             for (let i=0;i<l-1;i++) {
                 await this.write(content[i]);
             }
             await this.writeAndClose(content[l-1]);
-        } else if (isAsyncIterable<Content>(content)) {
+        } else if (isAsyncIterable<Content<T>>(content)) {
             await this.write(content);
             await this.close();
         } else {
@@ -37,7 +37,7 @@ class SessionPipe implements Pipe {
         }
     }
 
-    async write(content: Content): Promise<void> {
+    async write(content: Content<T>): Promise<void> {
         if (content instanceof Array) {
             for (const item of content) {
                 await this.write(item)
@@ -94,8 +94,8 @@ function isAction(maybeAction: Action|unknown): maybeAction is Action {
 class Session implements SessionInterface {
     constructor(private readonly context: SessionContext) { }
 
-    createPipe(): Pipe {
-        return new SessionPipe(this.context);
+    createPipe<T extends Chunk = Chunk>(): Pipe<T> {
+        return new SessionPipe<T>(this.context);
     }
 
     run(

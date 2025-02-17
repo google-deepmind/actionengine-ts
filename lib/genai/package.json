@@ -1,0 +1,39 @@
+{
+    "name": "@google/genai",
+    "version": "0.1.0",
+    "description": "",
+    "main": "genai.js",
+    "types": "genai.d.ts",
+    "scripts": {
+      "build": "tsc",
+      "unit-test": "jasmine dist/test/unit/**/*_test.js dist/test/unit/*_test.js",
+      "system-test": "jasmine dist/test/system/**/*_test.js",
+      "table-test": "jasmine dist/test/table_test.js",
+      "docs": "typedoc"
+    },
+    "engines": {
+      "node": ">=18.0.0"
+    },
+    "author": "",
+    "license": "Apache-2.0",
+    "devDependencies": {
+      "@types/jasmine": "^5.1.2",
+      "@types/node": "^20.9.0",
+      "@types/unist": "^3.0.3",
+      "@types/ws": "^8.5.14",
+      "gts": "^5.2.0",
+      "jasmine": "^5.5.0",
+      "jasmine-reporters": "^2.4.0",
+      "linkinator": "^4.0.0",
+      "nyc": "^15.1.0",
+      "prettier": "3.3.3",
+      "prettier-plugin-organize-imports": "^4.1.0",
+      "typedoc": "^0.27.0",
+      "typescript": "~5.2.0"
+    },
+    "dependencies": {
+      "google-auth-library": "^9.14.2",
+      "ws": "^8.18.0"
+    }
+  }
+  

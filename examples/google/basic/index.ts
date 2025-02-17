@@ -10,7 +10,7 @@ function apiKey(): string {
     const STORAGE_KEY = 'GENAI_API_KEY';
     let key = localStorage.getItem(STORAGE_KEY);
     if (!key) {
-        key = prompt('API KEY');
+        key = prompt('API KEY') || '';
         if (key) {
             localStorage.setItem(STORAGE_KEY, key);
         }

@@ -1,0 +1,1 @@
+Lib directory for temporary libraries not yet available from NPM.

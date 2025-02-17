@@ -51,9 +51,13 @@ function documentToText(document: Document) {
 }
 
 async function fetchDocument(url: string) {
-  const docsId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)[1];
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) {
+    throw new Error(`Bad url ${url}`)
+  }
+  const docsId = match[1];
   const docsApi = `${DOCS_API}${docsId}`;
-  const params = JSON.parse(localStorage.getItem('oauth2-test-params'));
+  const params = JSON.parse(localStorage.getItem('oauth2-test-params') || '');
   const response = await fetch(
     `${docsApi}?access_token=${params['access_token']}`);
   const documentData = await response.json();

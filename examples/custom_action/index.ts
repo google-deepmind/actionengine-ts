@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as aiae from '../../index.js';
+import * as aiae from 'aiae';
 
 // Example custom action
 class EchoAction extends aiae.Action {

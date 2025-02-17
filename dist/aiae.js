@@ -16,6 +16,7 @@ __export(content_exports, {
   TEXT_MIME_TYPE: () => TEXT_MIME_TYPE,
   assistantPrompt: () => assistantPrompt,
   audioChunk: () => audioChunk,
+  audioChunksToMediaStream: () => audioChunksToMediaStream,
   blobChunk: () => blobChunk,
   chunkBlob: () => chunkBlob,
   chunkJson: () => chunkJson,
@@ -30,6 +31,7 @@ __export(content_exports, {
   isRefChunk: () => isRefChunk,
   isTextChunk: () => isTextChunk,
   jsonChunk: () => jsonChunk,
+  mediaStreamToAudioChunks: () => mediaStreamToAudioChunks,
   parseMimetype: () => parseMimetype,
   prompt: () => prompt2,
   promptLiteralWithMetadata: () => promptLiteralWithMetadata,
@@ -41,6 +43,77 @@ __export(content_exports, {
   videoChunk: () => videoChunk,
   withMetadata: () => withMetadata
 });
+
+// content/mime.js
+function stringifyMimetype(mimetype) {
+  if (!mimetype) {
+    return "application/octet-stream";
+  }
+  let result = "";
+  if (!mimetype.type) {
+    return result;
+  }
+  result += mimetype.type;
+  if (!mimetype.subtype) {
+    return result;
+  }
+  result += "/";
+  if (mimetype.prefix) {
+    result += `${mimetype.prefix}.`;
+  }
+  result += mimetype.subtype;
+  if (mimetype.suffix) {
+    result += `+${mimetype.suffix}`;
+  }
+  if (mimetype.parameters) {
+    for (const [key, value] of Object.entries(mimetype.parameters)) {
+      result += `;${key}=${value}`;
+    }
+  }
+  return result;
+}
+function parseMimetype(mimetype) {
+  if (!mimetype) {
+    return { type: "application", subtype: "octet-stream" };
+  }
+  let parameters = void 0;
+  const paramParts = mimetype.split(";");
+  if (paramParts.length > 1) {
+    mimetype = mimetype.substring(0, paramParts[0].length);
+    parameters = {};
+    for (let i = 1; i < paramParts.length; i++) {
+      const [key, value] = paramParts[i].trim().split("=");
+      parameters[key] = value;
+    }
+  }
+  const parts = mimetype.split("/");
+  if (parts.length !== 2) {
+    throw new Error(`Invalid mimetype: ${mimetype}`);
+  }
+  const [type, rest] = parts;
+  let subtype = void 0;
+  let prefix = void 0;
+  let suffix = void 0;
+  const vndSplit = rest.lastIndexOf(".");
+  if (vndSplit >= 0) {
+    prefix = rest.slice(0, vndSplit);
+    subtype = rest.slice(vndSplit + 1);
+  } else {
+    subtype = rest;
+  }
+  const suffixSplit = subtype.indexOf("+");
+  if (suffixSplit >= 0) {
+    suffix = subtype.slice(suffixSplit + 1);
+    subtype = subtype.slice(0, suffixSplit);
+  }
+  return {
+    type,
+    subtype,
+    prefix,
+    suffix,
+    parameters
+  };
+}
 
 // content/content.js
 var ROLE;
@@ -193,75 +266,6 @@ function withMetadata(chunk, metadata) {
       ...chunk.metadata,
       ...metadata
     }
-  };
-}
-function stringifyMimetype(mimetype) {
-  if (!mimetype) {
-    return "application/octet-stream";
-  }
-  let result = "";
-  if (!mimetype.type) {
-    return result;
-  }
-  result += mimetype.type;
-  if (!mimetype.subtype) {
-    return result;
-  }
-  result += "/";
-  if (mimetype.prefix) {
-    result += `${mimetype.prefix}.`;
-  }
-  result += mimetype.subtype;
-  if (mimetype.suffix) {
-    result += `+${mimetype.suffix}`;
-  }
-  if (mimetype.parameters) {
-    for (const [key, value] of Object.entries(mimetype.parameters)) {
-      result += `; ${key}=${value}`;
-    }
-  }
-  return result;
-}
-function parseMimetype(mimetype) {
-  if (!mimetype) {
-    return { type: "application", subtype: "octet-stream" };
-  }
-  let parameters = void 0;
-  const paramParts = mimetype.split(";");
-  if (paramParts.length > 1) {
-    mimetype = mimetype.substring(0, paramParts[0].length);
-    parameters = {};
-    for (let i = 1; i < paramParts.length; i++) {
-      const [key, value] = paramParts[i].trim().split("=");
-      parameters[key] = value;
-    }
-  }
-  const parts = mimetype.split("/");
-  if (parts.length !== 2) {
-    throw new Error(`Invalid mimetype: ${mimetype}`);
-  }
-  const [type, rest] = parts;
-  let subtype = void 0;
-  let prefix = void 0;
-  let suffix = void 0;
-  const vndSplit = rest.lastIndexOf(".");
-  if (vndSplit >= 0) {
-    prefix = rest.slice(0, vndSplit);
-    subtype = rest.slice(vndSplit + 1);
-  } else {
-    subtype = rest;
-  }
-  const suffixSplit = subtype.indexOf("+");
-  if (suffixSplit >= 0) {
-    suffix = subtype.slice(suffixSplit + 1);
-    subtype = subtype.slice(0, suffixSplit);
-  }
-  return {
-    type,
-    subtype,
-    prefix,
-    suffix,
-    parameters
   };
 }
 function isProtoMessage(mimeType, messageType) {
@@ -597,6 +601,155 @@ function promptWithMetadata(prompt3, metadata) {
   throw new Error(`Unsupported type ${prompt3}`);
 }
 
+// content/audio.js
+var DEFAULT_OUTPUT_SAMPLE_RATE = 24e3;
+var DEFAULT_INPUT_SAMPLE_RATE = 16e3;
+var DEFAULT_NUM_CHANNELS = 1;
+async function decodeAudioData(chunk, ctx, sampleRate, numChannels) {
+  const data = chunk.data;
+  if (!data) {
+    throw new Error("Chunk without data.");
+  }
+  const bufferLength = new Int16Array(data.buffer).length;
+  const buffer = ctx.createBuffer(numChannels, bufferLength, sampleRate);
+  const mimetype = chunk.metadata?.mimetype;
+  if (!mimetype) {
+    throw new Error("Chunk without mimetype.");
+  }
+  if (mimetype.type === "audio" && mimetype.subtype === "ogg") {
+    const blob = new Blob([data.buffer], { type: "audio/ogg" });
+    const oggBuffer = await ctx.decodeAudioData(await blob.arrayBuffer());
+    for (let i = 0; i < numChannels; i++) {
+      buffer.copyToChannel(oggBuffer.getChannelData(i), i);
+    }
+  } else if (mimetype.type === "audio" && mimetype.subtype === "pcm") {
+    const dataInt16 = new Int16Array(data.buffer);
+    const l = dataInt16.length;
+    const dataFloat32 = new Float32Array(l);
+    for (let i = 0; i < l; i++) {
+      dataFloat32[i] = dataInt16[i] / 32768;
+    }
+    for (let i = 0; i < numChannels; i++) {
+      const channel = dataFloat32.filter((_, index) => index % numChannels === i);
+      buffer.copyToChannel(channel, i);
+    }
+  } else {
+    throw new Error("Unsupported mime type: " + mimetype);
+  }
+  return buffer;
+}
+function audioChunksToMediaStream(chunks) {
+  const sampleRate = DEFAULT_OUTPUT_SAMPLE_RATE;
+  const numChannels = DEFAULT_NUM_CHANNELS;
+  const ctx = new AudioContext({ sampleRate });
+  const dest = ctx.createMediaStreamDestination();
+  let source = null;
+  let playbackStartTime = 0;
+  let totalBufferedSeconds = 0;
+  async function read() {
+    try {
+      let nextSource = null;
+      for await (const chunk of chunks) {
+        if (chunk.metadata?.mimetype?.type !== "audio") {
+          continue;
+        }
+        const mimetypeParameters = chunk.metadata?.mimetype?.parameters;
+        let chunkSampleRate = Number(mimetypeParameters?.["rate"]);
+        if (isNaN(chunkSampleRate)) {
+          chunkSampleRate = sampleRate;
+        }
+        let buffer;
+        try {
+          buffer = await decodeAudioData(chunk, ctx, chunkSampleRate, numChannels);
+        } catch (e) {
+          console.error("Error decoding audio data", e);
+          continue;
+        }
+        nextSource = ctx.createBufferSource();
+        nextSource.buffer = buffer;
+        nextSource.connect(dest);
+        let nextStartTime;
+        const PLAYBACK_BUFFER_SECONDS = 0.1;
+        if (!source) {
+          playbackStartTime = ctx.currentTime + PLAYBACK_BUFFER_SECONDS;
+          nextStartTime = playbackStartTime;
+        } else {
+          nextStartTime = playbackStartTime + totalBufferedSeconds;
+          if (nextStartTime < ctx.currentTime + PLAYBACK_BUFFER_SECONDS) {
+            playbackStartTime = ctx.currentTime + PLAYBACK_BUFFER_SECONDS;
+            nextStartTime = playbackStartTime;
+            totalBufferedSeconds = 0;
+          }
+        }
+        nextSource.start(nextStartTime);
+        totalBufferedSeconds += buffer.duration;
+        source = nextSource;
+        nextSource = null;
+      }
+      await ctx.close();
+    } finally {
+      if (ctx.state !== "closed") {
+        void ctx.close();
+      }
+    }
+  }
+  void read();
+  return dest;
+}
+async function* mediaStreamToAudioChunks(media) {
+  const sampleRate = DEFAULT_INPUT_SAMPLE_RATE;
+  const ctx = new AudioContext({ sampleRate });
+  const numChannels = DEFAULT_NUM_CHANNELS;
+  const src = ctx.createMediaStreamSource(media);
+  const BUFFER_SIZE = 8192;
+  const processor = ctx.createScriptProcessor(BUFFER_SIZE, numChannels, numChannels);
+  const queue = [];
+  let resolver = void 0;
+  processor.onaudioprocess = (e) => {
+    const data = e.inputBuffer.getChannelData(0);
+    const l = data.length;
+    const int16 = new Int16Array(l);
+    for (let i = 0; i < l; i++) {
+      int16[i] = data[i] * 32768;
+    }
+    const chunk = {
+      data: new Uint8Array(int16.buffer),
+      metadata: {
+        mimetype: {
+          type: "audio",
+          subtype: "pcm",
+          parameters: { "rate": `${sampleRate}` }
+        }
+      }
+    };
+    if (resolver) {
+      resolver(chunk);
+      resolver = void 0;
+    } else {
+      queue.push(chunk);
+    }
+  };
+  src.connect(processor);
+  processor.connect(ctx.destination);
+  try {
+    while (true) {
+      if (queue.length > 0) {
+        yield queue.shift();
+      } else {
+        const result = await new Promise((resolve) => {
+          resolver = resolve;
+        });
+        yield result;
+      }
+      if (media.active === false) {
+        break;
+      }
+    }
+  } finally {
+    ctx.close();
+  }
+}
+
 // sessions/index.js
 var sessions_exports = {};
 __export(sessions_exports, {
@@ -877,13 +1030,16 @@ var debug = (context) => {
 var actions_exports = {};
 __export(actions_exports, {
   GenerateContent: () => GenerateContent,
+  Live: () => Live,
   ReverseContent: () => ReverseContent,
   drive: () => drive_exports,
   google: () => google_exports
 });
 
-// actions/generate_content.js
+// actions/common.js
 var GenerateContent = class extends Action {
+};
+var Live = class extends Action {
 };
 
 // actions/toy.js
@@ -907,9 +1063,36 @@ __export(google_exports, {
 // actions/google/genai.js
 var genai_exports = {};
 __export(genai_exports, {
-  GenerateContent: () => GenerateContent2
+  GenerateContent: () => GenerateContent2,
+  Live: () => Live2
 });
 import * as genai from "@google/genai";
+
+// base64/index.js
+var base64_exports = {};
+__export(base64_exports, {
+  decode: () => decode,
+  encode: () => encode
+});
+function encode(bytes) {
+  let binary = "";
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+function decode(base64) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+// actions/google/genai.js
 var clients = /* @__PURE__ */ new Map();
 function genAI(apiKey) {
   let client = clients.get(apiKey);
@@ -919,6 +1102,108 @@ function genAI(apiKey) {
   }
   return client;
 }
+var Live2 = class extends Live {
+  apiKey;
+  model;
+  constructor(apiKey, model = "gemini-2.0-flash-exp") {
+    super();
+    this.apiKey = apiKey;
+    this.model = model;
+  }
+  async run(session, inputs, outputs) {
+    const client = genAI(this.apiKey);
+    const config = {};
+    if (inputs.system) {
+      const system = await inputs.system;
+      const systemString = system.map((c) => chunkText(c)).join("");
+      config.systemInstruction = {
+        parts: [{ text: systemString }]
+      };
+    }
+    const live = await client.live.connect(this.model, config);
+    async function readAudio() {
+      for await (const chunk of inputs.audio) {
+        if (chunk.data) {
+          const i = {
+            mediaChunks: [{
+              mimeType: stringifyMimetype(chunk.metadata.mimetype),
+              data: encode(chunk.data)
+            }]
+          };
+          live.send(i);
+        }
+      }
+    }
+    async function readContext() {
+      if (!inputs.context) {
+        return;
+      }
+      for await (const chunk of inputs.context) {
+        if (chunk.data) {
+          const i = {
+            turns: [{
+              parts: [{
+                text: chunkText(chunk)
+              }]
+            }],
+            turnComplete: true
+          };
+          live.send(i);
+        }
+      }
+    }
+    async function writeOutputs2() {
+      while (true) {
+        const resp = await live.receive();
+        if (resp.serverContent?.modelTurn) {
+          const turn = resp.serverContent.modelTurn;
+          console.log(turn);
+          if (turn.parts) {
+            for (const part of turn.parts) {
+              if (part.text) {
+                const chunk = textChunk(part.text);
+                outputs.context?.write(chunk);
+              } else if (part.inlineData) {
+                const chunk = {
+                  data: decode(part.inlineData.data || ""),
+                  metadata: {
+                    mimetype: parseMimetype(part.inlineData.mimeType)
+                  }
+                };
+                if (chunk.metadata.mimetype?.type === "audio") {
+                  outputs.audio?.write(chunk);
+                } else {
+                  outputs.context?.write(chunk);
+                }
+              }
+            }
+          }
+        }
+        if (resp.serverContent?.turnComplete) {
+          console.log("complete");
+          continue;
+        }
+        if (resp.serverContent?.interrupted) {
+          console.log("interupted");
+          continue;
+        }
+        if (resp.toolCall) {
+          console.log("toolCall");
+          continue;
+        }
+        if (resp.toolCallCancellation) {
+          console.log("toolCancellation");
+          continue;
+        }
+      }
+      outputs.context?.close();
+      outputs.audio?.close();
+    }
+    void readAudio();
+    void readContext();
+    await writeOutputs2();
+  }
+};
 var GenerateContent2 = class extends GenerateContent {
   apiKey;
   model;
@@ -928,6 +1213,9 @@ var GenerateContent2 = class extends GenerateContent {
     this.model = model;
   }
   async run(session, inputs, outputs) {
+    if (!outputs.response) {
+      return;
+    }
     const prompt3 = await inputs.prompt;
     const promptString = prompt3.map((c) => chunkText(c)).join("");
     const response = await genAI(this.apiKey).models.generateContentStream({
@@ -935,7 +1223,10 @@ var GenerateContent2 = class extends GenerateContent {
       contents: promptString
     });
     for await (const chunk of response) {
-      outputs.response.write(textChunk(chunk.text()));
+      const text = chunk.text();
+      if (text) {
+        outputs.response.write(textChunk(text));
+      }
     }
   }
 };
@@ -955,7 +1246,7 @@ function oauthSignIn() {
   form.setAttribute("method", "GET");
   form.setAttribute("action", oauth2Endpoint);
   if (!OAUTH_CLIENT_ID) {
-    OAUTH_CLIENT_ID = prompt("Google OAuth client");
+    OAUTH_CLIENT_ID = prompt("Google OAuth client") || "";
   }
   const params = {
     "client_id": OAUTH_CLIENT_ID,
@@ -1016,9 +1307,13 @@ function documentToText(document2) {
   return documentText;
 }
 async function fetchDocument(url) {
-  const docsId = url.match(/\/d\/([a-zA-Z0-9-_]+)/)[1];
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) {
+    throw new Error(`Bad url ${url}`);
+  }
+  const docsId = match[1];
   const docsApi = `${DOCS_API}${docsId}`;
-  const params = JSON.parse(localStorage.getItem("oauth2-test-params"));
+  const params = JSON.parse(localStorage.getItem("oauth2-test-params") || "");
   const response = await fetch(`${docsApi}?access_token=${params["access_token"]}`);
   const documentData = await response.json();
   return documentData;
@@ -1039,6 +1334,7 @@ export {
   Action,
   actions_exports as actions,
   async_exports as async,
+  base64_exports as base64,
   content_exports as content,
   sessions_exports as sessions
 };
@@ -1069,6 +1365,11 @@ export {
  */
 /**
  * @fileoverview Generate content.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * @fileoverview base64 helper utilities.
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */

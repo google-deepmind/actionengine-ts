@@ -6,6 +6,7 @@
         "module": "esnext",
         "target": "esnext",
         "allowJs": true,
+        "strictNullChecks": true,
         "experimentalDecorators": true,
         "moduleResolution": "bundler",
         "typeRoots": [
