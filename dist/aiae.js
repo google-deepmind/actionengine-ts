@@ -129,7 +129,7 @@ function isTextChunk(maybeChunk) {
 function isJsonChunk(maybeChunk) {
   const chunk = maybeChunk;
   const mimetype = chunk.metadata?.mimetype;
-  return mimetype?.type === "application" && mimetype?.subtype === "json";
+  return mimetype?.type === "application" && mimetype.subtype === "json";
 }
 function isRefChunk(maybeChunk) {
   return maybeChunk.ref !== void 0;
@@ -139,9 +139,7 @@ function isDataChunk(maybeChunk) {
 }
 function isChunk(maybeChunk) {
   const c = maybeChunk;
-  const hasPayload = c.ref !== void 0 || c.data !== void 0;
-  const hasMetadata = c.metadata !== void 0;
-  return hasPayload || hasMetadata;
+  return !!(c.metadata ?? c.data ?? c.ref);
 }
 function jsonChunk(json, metadata = {}, replacer) {
   const defaultMetadata = {
@@ -152,7 +150,7 @@ function jsonChunk(json, metadata = {}, replacer) {
       ...defaultMetadata,
       ...metadata,
       mimetype: {
-        ...metadata?.mimetype,
+        ...metadata.mimetype,
         type: "application",
         subtype: "json"
       }
@@ -182,7 +180,7 @@ function textChunk(text, metadata = {}) {
       ...defaultMetadata,
       ...metadata,
       mimetype: {
-        ...metadata?.mimetype,
+        ...metadata.mimetype,
         type: "text",
         subtype: "plain"
       }
@@ -202,7 +200,7 @@ function chunkText(chunk, throwOnError = false) {
     return "";
   }
   if (throwOnError) {
-    throw new Error(`Unsupported chunk type: ${chunk}`);
+    throw new Error(`Unsupported chunk type: ${JSON.stringify(chunk)}`);
   }
   return JSON.stringify(chunk);
 }
@@ -269,7 +267,7 @@ function withMetadata(chunk, metadata) {
   };
 }
 function isProtoMessage(mimeType, messageType) {
-  return mimeType.type === "application" && mimeType.subtype === "x-protobuf" && mimeType.parameters?.["type"] === messageType;
+  return mimeType.type === "application" && mimeType.subtype === "x-protobuf" && mimeType.parameters?.type === messageType;
 }
 var JSON_MIME_TYPE = {
   type: "application",
@@ -308,13 +306,14 @@ var Stream = class {
     for (const iterator of [...this.iterators]) {
       iterator.write(value);
     }
+    return Promise.resolve();
   }
   /**
    * Write and close.
    */
-  writeAndClose(value) {
-    this.write(value);
-    this.close();
+  async writeAndClose(value) {
+    await this.write(value);
+    await this.close();
   }
   /**
    * Closes the stream.
@@ -324,6 +323,7 @@ var Stream = class {
     for (const iterator of [...this.iterators]) {
       iterator.close();
     }
+    return Promise.resolve();
   }
   get isClosed() {
     return this.closed;
@@ -420,7 +420,7 @@ var StreamIterator = class {
       return Promise.resolve({ done: false, value });
     }
     if (this.stream.getError() !== void 0) {
-      return Promise.reject(this.stream.getError());
+      return Promise.reject(new Error(this.stream.getError()));
     }
     const done = this.writeQueue.length === 0 && this.stream.isClosed;
     if (done) {
@@ -494,7 +494,7 @@ function transformToContent(value, metadataFn) {
   }
   if (value instanceof Promise) {
     const pl = createStream();
-    value.then((v) => {
+    value.then(async (v) => {
       if (isChunk(v)) {
         if (metadataFn) {
           v = withMetadata(v, metadataFn(v));
@@ -502,10 +502,10 @@ function transformToContent(value, metadataFn) {
       } else {
         v = transformToContent(v, metadataFn);
       }
-      pl.write(v);
-      pl.close();
+      await pl.write(v);
+      await pl.close();
     }).catch((err) => {
-      pl.error(err);
+      pl.error(`${err}`);
     });
     value = pl;
   }
@@ -587,12 +587,12 @@ function promptWithMetadata(prompt3, metadata) {
     const transform = async () => {
       try {
         for await (const item of source) {
-          pipe.write(promptWithMetadata(item, metadata));
+          void pipe.write(promptWithMetadata(item, metadata));
         }
       } catch (err) {
         pipe.error(`${err}`);
       } finally {
-        pipe.close();
+        await pipe.close();
       }
     };
     void transform();
@@ -634,7 +634,7 @@ async function decodeAudioData(chunk, ctx, sampleRate, numChannels) {
       buffer.copyToChannel(channel, i);
     }
   } else {
-    throw new Error("Unsupported mime type: " + mimetype);
+    throw new Error(`Unsupported mime type: ${JSON.stringify(mimetype)}`);
   }
   return buffer;
 }
@@ -653,8 +653,8 @@ function audioChunksToMediaStream(chunks) {
         if (chunk.metadata?.mimetype?.type !== "audio") {
           continue;
         }
-        const mimetypeParameters = chunk.metadata?.mimetype?.parameters;
-        let chunkSampleRate = Number(mimetypeParameters?.["rate"]);
+        const mimetypeParameters = chunk.metadata.mimetype.parameters;
+        let chunkSampleRate = Number(mimetypeParameters?.rate);
         if (isNaN(chunkSampleRate)) {
           chunkSampleRate = sampleRate;
         }
@@ -734,19 +734,23 @@ async function* mediaStreamToAudioChunks(media) {
   try {
     while (true) {
       if (queue.length > 0) {
-        yield queue.shift();
+        const result = queue.shift();
+        if (result === void 0) {
+          continue;
+        }
+        yield result;
       } else {
         const result = await new Promise((resolve) => {
           resolver = resolve;
         });
         yield result;
       }
-      if (media.active === false) {
+      if (!media.active) {
         break;
       }
     }
   } finally {
-    ctx.close();
+    await ctx.close();
   }
 }
 
@@ -915,10 +919,10 @@ async function* joinInputs(inputs) {
 }
 async function writeOutputs(unified, outputs) {
   for await (const [k, c] of unified) {
-    outputs[k].write(c);
+    void outputs[k].write(c);
   }
   for (const v of Object.values(outputs)) {
-    v.close();
+    await v.close();
   }
 }
 function sessionProvider(contextProvider) {
@@ -952,17 +956,17 @@ var LocalContext = class {
     if (lastSeq === void 0) {
       throw new Error(`Sequence not found for ${id}`);
     }
-    const seq = options?.seq || 0;
+    const seq = options?.seq ?? 0;
     if (lastSeq + 1 !== seq) {
       throw new Error(`Out of order sequence writes not yet supported. last seq ${lastSeq}, current seq ${seq}`);
     }
     this.sequenceOrder.set(id, seq);
     if (chunk.data !== void 0 || chunk.ref !== void 0) {
-      pl.write(chunk);
+      await pl.write(chunk);
     }
-    const continued = options?.continued || false;
-    if (continued !== true) {
-      pl.close();
+    const continued = options?.continued ?? false;
+    if (!continued) {
+      await pl.close();
     }
   }
   error(id, reason) {
@@ -981,7 +985,7 @@ var LocalContext = class {
   }
   async close() {
     for (const stream of this.nodeMap.values()) {
-      stream.close();
+      await stream.close();
     }
     this.nodeMap.clear();
     this.sequenceOrder.clear();
@@ -1048,9 +1052,9 @@ var ReverseContent = class extends Action {
     for await (const chunk of inputs.prompt) {
       const text = chunkText(chunk);
       const reverse = text.split("").reverse().join("");
-      outputs.response.write(textChunk(reverse, { role: ROLE.ASSISTANT }));
+      await outputs.response.write(textChunk(reverse, { role: ROLE.ASSISTANT }));
     }
-    outputs.response.close();
+    await outputs.response.close();
   }
 };
 
@@ -1162,18 +1166,18 @@ var Live2 = class extends Live {
             for (const part of turn.parts) {
               if (part.text) {
                 const chunk = textChunk(part.text);
-                outputs.context?.write(chunk);
+                await outputs.context?.write(chunk);
               } else if (part.inlineData) {
                 const chunk = {
-                  data: decode(part.inlineData.data || ""),
+                  data: decode(part.inlineData.data ?? ""),
                   metadata: {
                     mimetype: parseMimetype(part.inlineData.mimeType)
                   }
                 };
-                if (chunk.metadata.mimetype?.type === "audio") {
-                  outputs.audio?.write(chunk);
+                if (chunk.metadata?.mimetype?.type === "audio") {
+                  await outputs.audio?.write(chunk);
                 } else {
-                  outputs.context?.write(chunk);
+                  await outputs.context?.write(chunk);
                 }
               }
             }
@@ -1196,8 +1200,8 @@ var Live2 = class extends Live {
           continue;
         }
       }
-      outputs.context?.close();
-      outputs.audio?.close();
+      await outputs.context?.close();
+      await outputs.audio?.close();
     }
     void readAudio();
     void readContext();
@@ -1225,7 +1229,7 @@ var GenerateContent2 = class extends GenerateContent {
     for await (const chunk of response) {
       const text = chunk.text();
       if (text) {
-        outputs.response.write(textChunk(text));
+        await outputs.response.write(textChunk(text));
       }
     }
   }
@@ -1246,7 +1250,7 @@ function oauthSignIn() {
   form.setAttribute("method", "GET");
   form.setAttribute("action", oauth2Endpoint);
   if (!OAUTH_CLIENT_ID) {
-    OAUTH_CLIENT_ID = prompt("Google OAuth client") || "";
+    OAUTH_CLIENT_ID = prompt("Google OAuth client") ?? "";
   }
   const params = {
     "client_id": OAUTH_CLIENT_ID,
@@ -1282,7 +1286,7 @@ function maybeAuthenticate() {
   while ((m = regex.exec(fragmentString)) !== null) {
     params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
   }
-  if (Object.keys(params).length > 0 && params["state"]) {
+  if (Object.keys(params).length > 0 && params.state) {
     const paramsJson = JSON.stringify(params);
     localStorage.setItem("oauth2-test-params", paramsJson);
   } else {
@@ -1307,14 +1311,14 @@ function documentToText(document2) {
   return documentText;
 }
 async function fetchDocument(url) {
-  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  const match = /\/d\/([a-zA-Z0-9-_]+)/.exec(url);
   if (!match) {
     throw new Error(`Bad url ${url}`);
   }
   const docsId = match[1];
   const docsApi = `${DOCS_API}${docsId}`;
-  const params = JSON.parse(localStorage.getItem("oauth2-test-params") || "");
-  const response = await fetch(`${docsApi}?access_token=${params["access_token"]}`);
+  const params = JSON.parse(localStorage.getItem("oauth2-test-params") ?? "{}");
+  const response = await fetch(`${docsApi}?access_token=${params.access_token}`);
   const documentData = await response.json();
   return documentData;
 }
