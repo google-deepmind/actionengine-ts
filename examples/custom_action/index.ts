@@ -13,19 +13,17 @@ class EchoAction extends aiae.Action {
   }) {
     // Simple pipe pass through.
     for await (const chunk of inputs.prompt) {
-      outputs.response.write(chunk);
+      await outputs.response.write(chunk);
     }
-    outputs.response.close();
+    await outputs.response.close();
   }
 }
 
 
 const echoProcessor: aiae.Processor<'prompt', 'response'> =
     async function*(chunks) {
-  for await (const [k, c] of chunks) {
-    if (k === 'prompt') {
-      yield ['response', c];
-    }
+  for await (const kv of chunks) {
+      yield ['response', kv[1]];
   }
 }
 
@@ -35,8 +33,8 @@ async function main() {
 
   const session = aiae.sessions.local(aiae.sessions.middleware.debug);
   const userPrompt = session.createPipe();
-  void userPrompt.write(aiae.content.textChunk('Hello!'));
-  userPrompt.close();
+  await userPrompt.write(aiae.content.textChunk('Hello!'));
+  await userPrompt.close();
 
   const inputs = { prompt: userPrompt };
 
@@ -56,4 +54,4 @@ async function main() {
 
 }
 
-main();
+void main();

@@ -44,7 +44,7 @@ export function parseMimetype(mimetype?: string): Mimetype {
   if (!mimetype) {
     return {type: 'application', subtype: 'octet-stream'};
   }
-  let parameters: {[key: string]: string} | undefined = undefined;
+  let parameters: Record<string, string> | undefined = undefined;
   const paramParts = mimetype.split(';');
   if (paramParts.length > 1) {
     mimetype = mimetype.substring(0, paramParts[0].length);

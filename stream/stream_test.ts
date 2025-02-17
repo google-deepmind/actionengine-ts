@@ -14,14 +14,14 @@ describe('createStream<Chunk>', () => {
   it('can be written to with chunks', async () => {
     const p = createStream<Chunk>();
 
-    p.write(textChunk('hello '));
-    p.write(textChunk('there'));
-    p.close();
+    await p.write(textChunk('hello '));
+    await p.write(textChunk('there'));
+    await p.close();
 
     let text = '';
     for await (const chunk of p) {
       expect(chunk).not.toBeInstanceOf(Array);
-      text += chunkText(chunk as Chunk);
+      text += chunkText(chunk);
     }
     expect(text).toBe('hello there');
   });
@@ -29,9 +29,9 @@ describe('createStream<Chunk>', () => {
   it('can be written to with nested tree', async () => {
     const p = createStream<Chunk>();
 
-    p.write([textChunk('hello ')]);
-    p.write([textChunk('there')]);
-    p.close();
+    await p.write([textChunk('hello ')]);
+    await p.write([textChunk('there')]);
+    await p.close();
 
     let text = '';
     for await (const chunk of p) {
@@ -43,14 +43,14 @@ describe('createStream<Chunk>', () => {
   it('will correctly propagate errors', async () => {
     const p = createStream<Chunk>();
 
-    p.write(textChunk('hello'));
+    await p.write(textChunk('hello'));
     const error = 'fail';
     p.error(error);
 
     let text = '';
     try {
       for await (const chunk of p) {
-        text += chunkText(chunk as Chunk);
+        text += chunkText(chunk);
       }
     } catch (e) {
       expect(e).toBe(error);
@@ -61,7 +61,7 @@ describe('createStream<Chunk>', () => {
   it('can be iterated over multiple times', async () => {
     const p = createStream<Chunk>();
 
-    p.write(textChunk('hello'));
+    await p.write(textChunk('hello'));
     const a = (async () => {
       let text = '';
       for await (const chunk of p) {
@@ -78,15 +78,15 @@ describe('createStream<Chunk>', () => {
       return text;
     })();
 
-    p.write(textChunk(' there'));
-    p.close();
+    await p.write(textChunk(' there'));
+    await p.close();
     expect(await Promise.all([a, b])).toEqual(['hello there', 'hello there']);
   });
 
   it('cleans up iterators when completed', async () => {
     const p = createStream<Chunk>();
 
-    p.write(textChunk('hello'));
+    await p.write(textChunk('hello'));
     await (async () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       for await (const chunk of p) {
@@ -96,12 +96,12 @@ describe('createStream<Chunk>', () => {
     const pApi = p as unknown as StreamApi;
     // The early exit should trigger a removal of the iterator.
     expect(pApi.iterators.length).toBe(0);
-    p.write(textChunk(' there'));
-    p.close();
+    await p.write(textChunk(' there'));
+    await p.close();
     const result = await (async () => {
       let text = '';
       for await (const chunk of p) {
-        text += chunkText(chunk as Chunk);
+        text += chunkText(chunk);
       }
       return text;
     })();

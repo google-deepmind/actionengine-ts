@@ -15,7 +15,7 @@ function oauthSignIn() {
   form.setAttribute('method', 'GET');
   form.setAttribute('action', oauth2Endpoint);
   if (!OAUTH_CLIENT_ID) {
-	OAUTH_CLIENT_ID = prompt("Google OAuth client") || '';
+	OAUTH_CLIENT_ID = prompt("Google OAuth client") ?? '';
   } 
   const params: Record<string, string> = {
 		'client_id': OAUTH_CLIENT_ID,
@@ -40,7 +40,7 @@ function oauthSignIn() {
 
 }
 
-let authTried: boolean = false;
+let authTried = false;
 
 export function maybeAuthenticate() {
 	if (authTried) {
@@ -54,7 +54,7 @@ export function maybeAuthenticate() {
 	while ((m = regex.exec(fragmentString)) !== null) {
 		params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
 	}
-	if (Object.keys(params).length > 0 && params['state']) {
+	if (Object.keys(params).length > 0 && params.state) {
 		const paramsJson = JSON.stringify(params);
 		localStorage.setItem('oauth2-test-params', paramsJson);
 	} else {

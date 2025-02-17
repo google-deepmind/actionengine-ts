@@ -29,15 +29,12 @@ export interface Mimetype {
     readonly subtype?: string; // 'content'
     readonly prefix?: string; // 'vnd.google.gdm' the prefix such as vnd
     readonly suffix?: string; // 'json', from +json suffix
-    readonly parameters?: {
-        readonly [key: string]: string;
-    }; // after the ';' like '; type=aiae.v1.MyConfig' or
-    // '; charset=utf-8'
+    readonly parameters?: Record<string, string>; // after the ';' like '; type=aiae.v1.MyConfig' or charset=utf-8
 }
 
 /** Chunk with metadata. */
 export interface MetadataChunk {
-    readonly metadata: ChunkMetadata;
+    readonly metadata?: ChunkMetadata;
 }
 
 /** Chunk with bytes. */
@@ -72,6 +69,7 @@ export interface Pipe<T extends Chunk = Chunk> extends Input<T>, Output<T> {
 export type Dict<T,U extends string = string> = Readonly<Record<U,T>>;
 type StreamTypeOfDict<T extends Dict<unknown>> = T extends Dict<infer U> ? U extends WritableStream<infer V> ? V : never : never;
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export abstract class Action<T extends Dict<Input> = Dict<Input>, U extends Dict<Output> = Dict<Output>> {
     abstract run(session: Session, inputs: T, outputs: U): Promise<void>;
 }
@@ -85,24 +83,20 @@ export type ActionConstraints<T extends Action> = keyof ActionOutputs<T> & strin
 // Processor Interfaces Start
 
 /** Simplified transform of a unified Chunk stream. */
-export interface Processor<I extends string = string, O extends string = string,
-                                                                T extends
-                               Chunk = Chunk, U extends Chunk = Chunk> {
-  (stream: AsyncIterable<[I, T]>): AsyncGenerator<[O, U]>
-}
+export type Processor<I extends string = string, O extends string = string, T extends Chunk = Chunk, U extends Chunk = Chunk> = (stream: AsyncIterable<[I, T]>) => AsyncGenerator<[O, U]>;
 
 /** Processor Chunks. */
 export type ProcessorChunks<T extends string = string, U extends Chunk = Chunk> = AsyncIterable<[T, U]>;
 /** Input dict to a processor. */
 export type ProcessorInputs<T extends Processor> =
-    T extends Processor<infer I, string, infer X, Chunk>?
-    {[P in I]: AsyncIterable<X>} :
+    T extends Processor<infer I, string, infer X>?
+    Record<I, AsyncIterable<X>> :
     never;
 /** Output dict to a processor. */
  
 export type ProcessorOutputs<T extends Processor> =
     T extends Processor<string, infer O, Chunk, infer Y>?
-    {[P in O]: ReadableStream<Y>} :
+    Record<O, ReadableStream<Y>> :
     never;
 export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 // Processor Interfaces End
@@ -139,12 +133,8 @@ export interface SessionContext {
     close(): Promise<void>;
 }
 
-export interface SessionContextMiddleware {
-    (context: SessionContext): SessionContext;
-}
+export type SessionContextMiddleware = (context: SessionContext) => SessionContext;
 
-export interface SessionProvider {
-    (...middleware: SessionContextMiddleware[]): Session;
-}
+export type SessionProvider = (...middleware: SessionContextMiddleware[]) => Session;
 
 // Session Interfaces End

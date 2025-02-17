@@ -25,7 +25,7 @@ function genAI(apiKey: string) {
 
 export class Live extends AbstractLive {
 
-    constructor(private readonly apiKey: string, private readonly model: string = 'gemini-2.0-flash-exp') {
+    constructor(private readonly apiKey: string, private readonly model = 'gemini-2.0-flash-exp') {
         super();
     }
 
@@ -85,18 +85,18 @@ export class Live extends AbstractLive {
                         for (const part of turn.parts) {
                             if (part.text) {
                                 const chunk = textChunk(part.text);
-                                outputs.context?.write(chunk);
+                                await outputs.context?.write(chunk);
                             } else if (part.inlineData) {
                                 const chunk: Chunk = {
-                                    data: b64decode(part.inlineData.data || ''),
+                                    data: b64decode(part.inlineData.data ?? ''),
                                     metadata: {
                                         mimetype: parseMimetype(part.inlineData.mimeType),
                                     }
                                 };
-                                if (chunk.metadata.mimetype?.type === 'audio') {
-                                    outputs.audio?.write(chunk as AudioChunk);
+                                if (chunk.metadata?.mimetype?.type === 'audio') {
+                                    await outputs.audio?.write(chunk as AudioChunk);
                                 } else {
-                                    outputs.context?.write(chunk);
+                                    await outputs.context?.write(chunk);
                                 }
                             }
                         }
@@ -119,8 +119,8 @@ export class Live extends AbstractLive {
                     continue;
                 }
             }
-            outputs.context?.close();
-            outputs.audio?.close();
+            await outputs.context?.close();
+            await outputs.audio?.close();
         }
 
         void readAudio();
@@ -150,7 +150,7 @@ export class GenerateContent extends AbstractGenerateContent {
         for await (const chunk of response) {
             const text = chunk.text();
             if (text) {
-                outputs.response.write(textChunk(text));
+                await outputs.response.write(textChunk(text));
             }
         }
     }

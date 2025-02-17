@@ -54,7 +54,7 @@ async function decodeAudioData(
             buffer.copyToChannel(channel, i);
         }
     } else {
-        throw new Error('Unsupported mime type: ' + mimetype);
+        throw new Error(`Unsupported mime type: ${JSON.stringify(mimetype)}`);
     }
     return buffer;
 }
@@ -80,9 +80,9 @@ export function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStr
                     continue;
                 }
 
-                const mimetypeParameters = chunk.metadata?.mimetype?.parameters;
+                const mimetypeParameters = chunk.metadata.mimetype.parameters;
                 // Use sample rate from chunk if present.
-                let chunkSampleRate = Number(mimetypeParameters?.['rate']);
+                let chunkSampleRate = Number(mimetypeParameters?.rate);
                 if (isNaN(chunkSampleRate)) {
                     chunkSampleRate = sampleRate;
                 }
@@ -145,6 +145,7 @@ export async function* mediaStreamToAudioChunks(media: MediaStream): AsyncGenera
     const src = ctx.createMediaStreamSource(media);
     // TODO(doug): Use a worklet processor to convert to int16.
     const BUFFER_SIZE = 8192; // must be a power of 2 between 256 and 16384
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const processor = ctx.createScriptProcessor(
         BUFFER_SIZE,
         numChannels,
@@ -153,8 +154,10 @@ export async function* mediaStreamToAudioChunks(media: MediaStream): AsyncGenera
     const queue: AudioChunk[] = [];
     let resolver: ((value: AudioChunk) => void) | undefined = undefined;
 
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     processor.onaudioprocess = (e) => {
         // Data is float32, from -1 to 1.
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         const data = e.inputBuffer.getChannelData(0);
         const l = data.length;
         const int16 = new Int16Array(l);
@@ -184,18 +187,22 @@ export async function* mediaStreamToAudioChunks(media: MediaStream): AsyncGenera
     try {
         while (true) {
             if (queue.length > 0) {
-                yield queue.shift()!;
+                const result = queue.shift();
+                if (result === undefined) {
+                    continue;
+                }
+                yield result;
             } else {
                 const result = await new Promise<AudioChunk>((resolve) => {
                     resolver = resolve;
                 });
                 yield result;
             }
-            if (media.active === false) {
+            if (!media.active) {
                 break;
             }
         }
     } finally {
-        ctx.close();
+        await ctx.close();
     }
 }

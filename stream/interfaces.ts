@@ -9,9 +9,9 @@
 export type StreamItems<T> = T | AsyncIterable<StreamItems<T>> | StreamItems<T>[]
 
 export interface WritableStream<T> {
-    write(value: StreamItems<T>): void;
-    writeAndClose(value: StreamItems<T>): void;
-    close(): void;
+    write(value: StreamItems<T>): Promise<void>;
+    writeAndClose(value: StreamItems<T>): Promise<void>;
+    close(): Promise<void>;
     error(reason?: string): void;
 }
 export type ReadableStream<T> = AsyncIterable<T> & PromiseLike<T[]>;

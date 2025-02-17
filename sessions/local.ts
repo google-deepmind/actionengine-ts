@@ -29,18 +29,18 @@ class LocalContext implements SessionContext {
         if (lastSeq === undefined) {
             throw new Error(`Sequence not found for ${id}`);
         }
-        const seq = options?.seq || 0;
+        const seq = options?.seq ?? 0;
         if ((lastSeq + 1) !== seq) {
             throw new Error(`Out of order sequence writes not yet supported. last seq ${lastSeq}, current seq ${seq}`);
         }
         this.sequenceOrder.set(id, seq);
-        // Skip writing empty data and ref as it is just a close signal.
+        // Skip writing empty data and ref as it is just a close signal explicit check.
         if (chunk.data !== undefined || chunk.ref !== undefined) {
-            pl.write(chunk);
+            await pl.write(chunk);
         }
-        const continued = options?.continued || false;
-        if (continued !== true) {
-            pl.close();
+        const continued = options?.continued ?? false;
+        if (!continued) {
+            await pl.close();
         }
     }
     error(id: string, reason?: string) {
@@ -60,7 +60,7 @@ class LocalContext implements SessionContext {
 
     async close(): Promise<void> {
         for (const stream of this.nodeMap.values()) {
-            stream.close();
+            await stream.close();
         }
         this.nodeMap.clear();
         this.sequenceOrder.clear();

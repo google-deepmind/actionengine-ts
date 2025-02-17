@@ -83,7 +83,7 @@ const emptyChunk = {
   data: new Uint8Array(0)
 };
 
-function isAction(maybeAction: Action|unknown): maybeAction is Action {
+function isAction(maybeAction: unknown): maybeAction is Action {
     if ((maybeAction as Action).run) {
         return true;
     }
@@ -132,10 +132,10 @@ async function * joinInputs(inputs: Dict<ReadableStream<Chunk>>): AsyncGenerator
 /** Writes the unified stream of outputs to a dict of writable streams. */
 async function writeOutputs(unified: AsyncIterable<[string, Chunk]>, outputs: Dict<WritableStream<Chunk>>) {
     for await (const [k,c] of unified) {
-        outputs[k].write(c);
+        void outputs[k].write(c);
     }
     for (const v of Object.values(outputs)) {
-        v.close();
+        await v.close();
     }
 }
 

@@ -12,6 +12,6 @@ export declare function createStream<T>(): StreamInterface<T>;
  */
 export declare function isAsyncIterable<T = unknown>(maybeAsyncIterable: AsyncIterable<T> | unknown): maybeAsyncIterable is AsyncIterable<T>;
 /** A function to aggregate an AsyncIterable to a PromiseLike thenable. */
-export declare function thenableAsyncIterable<T, TResult1 = T[], TResult2 = never>(this: AsyncIterable<T>, onfulfilled?: ((value: T[]) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | undefined | null): Promise<TResult1 | TResult2>;
+export declare function thenableAsyncIterable<T, TResult1 = T[], TResult2 = never>(this: AsyncIterable<T>, onfulfilled?: ((value: T[]) => TResult1 | PromiseLike<TResult1>) | null, onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null): Promise<TResult1 | TResult2>;
 /** Make an asyncIterable PromiseLike. */
 export declare function awaitableAsyncIterable<T>(iter: AsyncIterable<T>): AsyncIterable<T> & PromiseLike<T[]>;

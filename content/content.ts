@@ -30,7 +30,7 @@ export function isTextChunk(maybeChunk: unknown): maybeChunk is TextChunk {
 export function isJsonChunk(maybeChunk: unknown): maybeChunk is TextChunk {
   const chunk = maybeChunk as Chunk;
   const mimetype = chunk.metadata?.mimetype;
-  return mimetype?.type === 'application' && mimetype?.subtype === 'json';
+  return mimetype?.type === 'application' && mimetype.subtype === 'json';
 }
 
 /**
@@ -52,9 +52,7 @@ export function isDataChunk(maybeChunk: unknown): maybeChunk is DataChunk {
  */
 export function isChunk(maybeChunk: unknown): maybeChunk is Chunk {
   const c = maybeChunk as Chunk;
-  const hasPayload = c.ref !== undefined || c.data !== undefined;
-  const hasMetadata = c.metadata !== undefined;
-  return hasPayload || hasMetadata;
+  return !!(c.metadata ?? c.data ?? c.ref);
 }
 
 /**
@@ -75,7 +73,7 @@ export function jsonChunk(
       ...defaultMetadata,
       ...metadata,
       mimetype: {
-        ...metadata?.mimetype,
+        ...metadata.mimetype,
         type: 'application',
         subtype: 'json',
       },
@@ -121,7 +119,7 @@ export function textChunk(
       ...defaultMetadata,
       ...metadata,
       mimetype: {
-        ...metadata?.mimetype,
+        ...metadata.mimetype,
         type: 'text',
         subtype: 'plain',
       },
@@ -146,7 +144,7 @@ export function chunkText(chunk: Chunk, throwOnError = false): string {
     return '';
   }
   if (throwOnError) {
-    throw new Error(`Unsupported chunk type: ${chunk}`);
+    throw new Error(`Unsupported chunk type: ${JSON.stringify(chunk)}`);
   }
   // Unknown chunk type stringify as best as possible.
   return JSON.stringify(chunk);
@@ -158,7 +156,7 @@ export function chunkText(chunk: Chunk, throwOnError = false): string {
 export function chunkBlob(chunk: Chunk): Blob {
   let parts: BlobPart[];
   if (isDataChunk(chunk)) {
-    parts = [chunk.data!];
+    parts = [chunk.data];
   } else {
     // TODO(doug): Implement ref chunk.
     throw new Error('Ref chunk not yet implemented');
@@ -322,7 +320,7 @@ export function isProtoMessage(mimeType: Mimetype, messageType: string) {
   return (
     mimeType.type === 'application' &&
     mimeType.subtype === 'x-protobuf' &&
-    mimeType.parameters?.['type'] === messageType
+    mimeType.parameters?.type === messageType
   );
 }
 

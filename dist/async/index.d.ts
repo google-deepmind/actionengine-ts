@@ -6,4 +6,4 @@
 /**
  * Races a list of streams returning the first value to resolve from any stream.
  */
-export declare function merge<T extends ReadonlyArray<AsyncIterator<unknown> | AsyncIterable<unknown>>>(...arr: [...T]): T[number];
+export declare function merge<T extends readonly (AsyncIterator<unknown> | AsyncIterable<unknown>)[]>(...arr: [...T]): T[number];

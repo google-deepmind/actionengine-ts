@@ -1,13 +1,25 @@
 import globals from "globals";
-import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 
-
-/** @type {import('eslint').Linter.Config[]} */
-export default [
-  { ignores: ["dist/*", "lib/*"] },
+export default tseslint.config(
+  tseslint.configs.strictTypeChecked,
+  tseslint.configs.stylisticTypeChecked,
+  { ignores: ["dist/*", "lib/*", "**/*.js", "**/*.d.ts"] },
   { files: ["**/*.{ts,tsx}"] },
-  { languageOptions: { globals: globals.browser } },
-  pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
-];
+  { 
+    languageOptions: { 
+      globals: globals.browser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      }
+    },
+  },
+  {
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/restrict-template-expressions": "off",
+      "@typescript-eslint/no-unnecessary-condition": "off",
+    }
+  },
+)

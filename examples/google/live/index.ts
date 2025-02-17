@@ -10,7 +10,7 @@ function apiKey(): string {
     const STORAGE_KEY = 'GENAI_API_KEY';
     let key = localStorage.getItem(STORAGE_KEY);
     if (!key) {
-        key = prompt('API KEY') || '';
+        key = prompt('API KEY') ?? '';
         if (key) {
             localStorage.setItem(STORAGE_KEY, key);
         }
@@ -45,20 +45,24 @@ class LiveDemo extends HTMLElement {
       const liveAction = new aiae.actions.google.genai.Live(apiKey(), 'gemini-2.0-flash-exp');
 
       const outputs = session.run(liveAction, {audio: audioIn}, ['audio']);
+
+      const turnOnMic = async () => {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: true,
+        });
+        const audioChunks = aiae.content.mediaStreamToAudioChunks(stream);
+        await audioIn.write(audioChunks);
+      };
   
-      const keydown = async (event: KeyboardEvent) => {
+      const keydown = (event: KeyboardEvent) => {
         if (event.altKey || event.metaKey || event.ctrlKey) {
           // Don't trigger on alt-tab, etc.
           document.addEventListener('keydown', keydown, {once: true});
           return;
         }
         this.statusEl.innerText = 'Mic is live';
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: false,
-          audio: true,
-        });
-        const audioChunks = aiae.content.mediaStreamToAudioChunks(stream);
-        audioIn.write(audioChunks);
+        void turnOnMic();
 
         if (firstKeyDown) {
           firstKeyDown = false;
@@ -96,9 +100,9 @@ class LiveDemo extends HTMLElement {
     }
   }
 
-async function main() {
+function main() {
     const el = document.createElement('live-demo');
     document.body.appendChild(el);
 }
 
-void main();
+main();

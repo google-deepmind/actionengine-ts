@@ -10,7 +10,7 @@ function apiKey(): string {
     const STORAGE_KEY = 'GENAI_API_KEY';
     let key = localStorage.getItem(STORAGE_KEY);
     if (!key) {
-        key = prompt('API KEY') || '';
+        key = prompt('API KEY') ?? '';
         if (key) {
             localStorage.setItem(STORAGE_KEY, key);
         }
@@ -18,7 +18,7 @@ function apiKey(): string {
     return key;
 }
 
-async function main() {
+function main() {
     const API_KEY = apiKey();
     const flashGenerate = new aiae.actions.google.genai.GenerateContent(API_KEY, "gemini-1.5-flash");
 
@@ -41,7 +41,7 @@ async function main() {
         modelEl.innerText += 'gemini: ';
 
         const inputPrompt = session.createPipe();
-        inputPrompt.writeAndClose(aiae.content.prompt`${inputText}`);
+        await inputPrompt.writeAndClose(aiae.content.prompt`${inputText}`);
         const outputs = session.run(flashGenerate, {'prompt': inputPrompt}, ['response']);
 
         for await (const chunk of outputs.response) {

@@ -13,8 +13,8 @@ export class ReverseContent extends Action {
         for await (const chunk of inputs.prompt) {
             const text = chunkText(chunk);
             const reverse = text.split("").reverse().join("");
-            outputs.response.write(textChunk(reverse, { role: ROLE.ASSISTANT }));
+            await outputs.response.write(textChunk(reverse, { role: ROLE.ASSISTANT }));
         }
-        outputs.response.close();
+        await outputs.response.close();
     }
 }

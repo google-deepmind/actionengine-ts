@@ -15,9 +15,9 @@ import { prompt, promptWithMetadata } from './prompt.js';
 
 const isBrowser = typeof window !== 'undefined';
 
-async function asArray(content: Content): Promise<Array<Chunk>> {
+async function asArray(content: Content): Promise<Chunk[]> {
   const s = createStream<Chunk>();
-  s.writeAndClose(content);
+  await s.writeAndClose(content);
   return await s;
 }
 
@@ -61,16 +61,16 @@ describe('prompt', () => {
 
     const substream = createStream<Chunk>();
 
-    p.write(substream);
-    p.write(textChunk('foo'));
-    p.write(textChunk('bar'));
-    p.close();
+    await p.write(substream);
+    await p.write(textChunk('foo'));
+    await p.write(textChunk('bar'));
+    await p.close();
 
-    substream.write(textChunk('baz'));
-    substream.write(textChunk('bat'));
-    substream.close();
+    await substream.write(textChunk('baz'));
+    await substream.write(textChunk('bat'));
+    await substream.close();
 
-    const resultTree = await result;
+    const resultTree = await asArray(result);
     expect<unknown>(resultTree).toEqual([
       textChunk('baz'),
       textChunk('bat'),
@@ -91,7 +91,7 @@ describe('prompt', () => {
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z7DwCwAGPAKWS7xnTwAAAABJRU5ErkJggg==';
       const result = prompt`describe this image: ${img}`;
 
-      const resultTree = await result;
+      const resultTree = await asArray(result);
       const iChunk = await imageChunk(img);
 
       expect<unknown>(resultTree).toEqual([
@@ -106,7 +106,7 @@ describe('prompt', () => {
 
       const result = prompt`describe this audio: ${audio}`;
 
-      const resultTree = await result;
+      const resultTree = await asArray(result);
       const aChunk = await audioChunk(audio);
 
       expect<unknown>(resultTree).toEqual([
@@ -121,7 +121,7 @@ describe('prompt', () => {
 
       const result = prompt`describe this video: ${video}`;
 
-      const resultTree = await result;
+      const resultTree = await asArray(result);
       const vChunk = await videoChunk(video);
 
       expect<unknown>(resultTree).toEqual([

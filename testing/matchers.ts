@@ -30,8 +30,8 @@ export function ignoreFields(...fields: string[]) {
             } else {
                 // Recursively compare other properties
                 return equality(
-                    (a as { [key: string]: unknown })[key],
-                    (b as { [key: string]: unknown })[key],
+                    (a as Record<string, unknown>)[key],
+                    (b as Record<string, unknown>)[key],
                 );
             }
         });
@@ -59,6 +59,7 @@ export const matchers: jasmine.CustomMatcherFactories = {
                 const actualClean = cleanChunk(actual);
                 return {
                     pass: util.equals(actualClean, expectedClean),
+                    // eslint-disable-next-line @typescript-eslint/no-deprecated
                     message: util.buildFailureMessage(
                         'toEqualChunk',
                         false,
@@ -77,6 +78,7 @@ export const matchers: jasmine.CustomMatcherFactories = {
                 const expectedClean = expected.map((c) => cleanChunk(c));
                 return {
                     pass: util.equals(actualClean, expectedClean),
+                    // eslint-disable-next-line @typescript-eslint/no-deprecated
                     message: util.buildFailureMessage(
                         'toEqualChunks',
                         false,

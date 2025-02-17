@@ -5,7 +5,7 @@
  */
 
 import { Chunk, ChunkMetadata, Content } from '../interfaces.js';
-import { createStream, isAsyncIterable } from '../stream/index.js';
+import { createStream, isAsyncIterable, StreamItems } from '../stream/index.js';
 
 import { audioChunk, blobChunk, fetchChunk, ROLE, imageChunk, isChunk, textChunk, videoChunk, withMetadata, } from './content.js';
 
@@ -40,7 +40,7 @@ function transformToContent(
   if (value instanceof Promise) {
     const pl = createStream<Chunk>();
     value
-      .then((v) => {
+      .then(async (v) => {
         if (isChunk(v)) {
           if (metadataFn) {
             v = withMetadata(v, metadataFn(v));
@@ -48,11 +48,11 @@ function transformToContent(
         } else {
           v = transformToContent(v, metadataFn);
         }
-        pl.write(v);
-        pl.close();
+        await pl.write(v as StreamItems<Chunk>);
+        await pl.close();
       })
-      .catch((err: string) => {
-        pl.error(err);
+      .catch((err: unknown) => {
+        pl.error(`${err}`);
       });
     value = pl;
   }
@@ -171,12 +171,12 @@ export function promptWithMetadata(
     const transform = async () => {
       try {
         for await (const item of source) {
-          pipe.write(promptWithMetadata(item, metadata));
+          void pipe.write(promptWithMetadata(item, metadata));
         }
       } catch (err: unknown) {
         pipe.error(`${err}`);
       } finally {
-        pipe.close();
+        await pipe.close();
       }
     };
     void transform();

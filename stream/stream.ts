@@ -25,13 +25,13 @@ if (typeof Promise.withResolvers === 'undefined') {
 class Stream<T> implements StreamInterface<T> {
   private closed = false;
   private readonly children: StreamItems<T>[] = [];
-  private readonly iterators: Array<StreamIterator<T>> = [];
+  private readonly iterators: StreamIterator<T>[] = [];
   private errorValue: string | undefined;
 
   /**
    * Writes a value to the stream.
    */
-  write(value: StreamItems<T>): void {
+  write(value: StreamItems<T>): Promise<void> {
     if (this.closed) {
       throw new Error('Stream is closed');
     }
@@ -39,24 +39,26 @@ class Stream<T> implements StreamInterface<T> {
     for (const iterator of [...this.iterators]) {
       iterator.write(value);
     }
+    return Promise.resolve();
   }
 
   /**
    * Write and close.
    */
-  writeAndClose(value: StreamItems<T>): void {
-    this.write(value);
-    this.close();
+  async writeAndClose(value: StreamItems<T>): Promise<void> {
+    await this.write(value);
+    await this.close();
   }
 
   /**
    * Closes the stream.
    */
-  close(): void {
+  close(): Promise<void> {
     this.closed = true;
     for (const iterator of [...this.iterators]) {
       iterator.close();
     }
+    return Promise.resolve();
   }
 
   get isClosed() {
@@ -131,7 +133,7 @@ async function*
 class StreamIterator<T> implements AsyncIterator<StreamItems<T>> {
   private readonly writeQueue: StreamItems<T>[] = [];
   private readonly readQueue:
-    Array<PromiseWithResolvers<IteratorResult<StreamItems<T>>>> = [];
+    PromiseWithResolvers<IteratorResult<StreamItems<T>>>[] = [];
 
   constructor(
     private readonly stream: Stream<T>,
@@ -170,7 +172,7 @@ class StreamIterator<T> implements AsyncIterator<StreamItems<T>> {
       return Promise.resolve({ done: false, value });
     }
     if (this.stream.getError() !== undefined) {
-      return Promise.reject(this.stream.getError());
+      return Promise.reject(new Error(this.stream.getError()));
     }
     const done = this.writeQueue.length === 0 && this.stream.isClosed;
     if (done) {
@@ -199,7 +201,7 @@ export function createStream<T>(): StreamInterface<T> {
  * implementing a `Symbol.asyncIterator` method.
  */
 export function isAsyncIterable<T = unknown>(
-  maybeAsyncIterable: AsyncIterable<T> | unknown,
+  maybeAsyncIterable: unknown,
 ): maybeAsyncIterable is AsyncIterable<T> {
   const iter = maybeAsyncIterable as AsyncIterable<T>;
   return typeof iter[Symbol.asyncIterator] === 'function';
@@ -227,10 +229,10 @@ async function* leaves<T>(items: StreamItems<T>): AsyncIterable<T> {
 /** A function to aggregate an AsyncIterable to a PromiseLike thenable. */
 export function thenableAsyncIterable<T, TResult1 = T[], TResult2 = never>(
   this: AsyncIterable<T>,
-  onfulfilled?: | ((value: T[]) => TResult1 | PromiseLike<TResult1>) | undefined |
+  onfulfilled?: | ((value: T[]) => TResult1 | PromiseLike<TResult1>)   |
     null,
-  onrejected?: | ((reason: unknown) => TResult2 | PromiseLike<TResult2>) |
-    undefined | null,
+  onrejected?: | ((reason: unknown) => TResult2 | PromiseLike<TResult2>) 
+     | null,
 ): Promise<TResult1 | TResult2> {
   const aggregate = async () => {
     const items = [];

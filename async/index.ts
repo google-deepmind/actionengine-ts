@@ -7,7 +7,7 @@
 /**
  * Returns the first promise to resolve and which index it came from.
  */
-function raceWithIndex<T>(promises: Array<Promise<T>>): Promise<[T, number]> {
+function raceWithIndex<T>(promises: Promise<T>[]): Promise<[T, number]> {
     const {promise, resolve, reject} = Promise.withResolvers<[T, number]>();
     const l = promises.length;
     let complete = false;
@@ -19,7 +19,7 @@ function raceWithIndex<T>(promises: Array<Promise<T>>): Promise<[T, number]> {
         }
         complete = true;
         resolve([v, i]);
-      }).catch((e) => {
+      }).catch((e: unknown) => {
         if (complete) {
           return;
         }
@@ -34,7 +34,7 @@ function raceWithIndex<T>(promises: Array<Promise<T>>): Promise<[T, number]> {
    * Races a list of streams returning the first value to resolve from any stream.
    */
   export async function* merge<
-    T extends ReadonlyArray<AsyncIterator<unknown>|AsyncIterable<unknown>>>(...arr: [...T]): T[number] {
+    T extends readonly (AsyncIterator<unknown>|AsyncIterable<unknown>)[]>(...arr: [...T]): T[number] {
     const sources = [...arr].map((p) => {
       const iter = p as AsyncIterable<unknown>;
       if (typeof iter[Symbol.asyncIterator] === "function") {
@@ -46,6 +46,7 @@ function raceWithIndex<T>(promises: Array<Promise<T>>): Promise<[T, number]> {
     while (queue.length > 0) {
       const [result, i] = await raceWithIndex(queue);
       if (result.done) {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         queue.splice(i, 1);
         sources.splice(i, 1);
       } else {

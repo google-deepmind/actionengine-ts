@@ -22,13 +22,11 @@ export interface Mimetype {
     readonly subtype?: string;
     readonly prefix?: string;
     readonly suffix?: string;
-    readonly parameters?: {
-        readonly [key: string]: string;
-    };
+    readonly parameters?: Record<string, string>;
 }
 /** Chunk with metadata. */
 export interface MetadataChunk {
-    readonly metadata: ChunkMetadata;
+    readonly metadata?: ChunkMetadata;
 }
 /** Chunk with bytes. */
 export interface DataChunk extends MetadataChunk {
@@ -56,19 +54,13 @@ export type ActionInputs<T extends Action> = T extends Action<infer U> ? U : nev
 export type ActionOutputs<T extends Action> = T extends Action<infer U, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
 export type ActionConstraints<T extends Action> = keyof ActionOutputs<T> & string;
 /** Simplified transform of a unified Chunk stream. */
-export interface Processor<I extends string = string, O extends string = string, T extends Chunk = Chunk, U extends Chunk = Chunk> {
-    (stream: AsyncIterable<[I, T]>): AsyncGenerator<[O, U]>;
-}
+export type Processor<I extends string = string, O extends string = string, T extends Chunk = Chunk, U extends Chunk = Chunk> = (stream: AsyncIterable<[I, T]>) => AsyncGenerator<[O, U]>;
 /** Processor Chunks. */
 export type ProcessorChunks<T extends string = string, U extends Chunk = Chunk> = AsyncIterable<[T, U]>;
 /** Input dict to a processor. */
-export type ProcessorInputs<T extends Processor> = T extends Processor<infer I, string, infer X, Chunk> ? {
-    [P in I]: AsyncIterable<X>;
-} : never;
+export type ProcessorInputs<T extends Processor> = T extends Processor<infer I, string, infer X> ? Record<I, AsyncIterable<X>> : never;
 /** Output dict to a processor. */
-export type ProcessorOutputs<T extends Processor> = T extends Processor<string, infer O, Chunk, infer Y> ? {
-    [P in O]: ReadableStream<Y>;
-} : never;
+export type ProcessorOutputs<T extends Processor> = T extends Processor<string, infer O, Chunk, infer Y> ? Record<O, ReadableStream<Y>> : never;
 export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 export interface Session {
     createPipe<T extends Chunk>(): Pipe<T>;
@@ -86,10 +78,6 @@ export interface SessionContext {
     error(id: string, reason?: string): void;
     close(): Promise<void>;
 }
-export interface SessionContextMiddleware {
-    (context: SessionContext): SessionContext;
-}
-export interface SessionProvider {
-    (...middleware: SessionContextMiddleware[]): Session;
-}
+export type SessionContextMiddleware = (context: SessionContext) => SessionContext;
+export type SessionProvider = (...middleware: SessionContextMiddleware[]) => Session;
 export {};
