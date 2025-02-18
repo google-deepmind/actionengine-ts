@@ -22,6 +22,7 @@ __export(content_exports, {
   chunkJson: () => chunkJson,
   chunkText: () => chunkText,
   contextPrompt: () => contextPrompt,
+  dataUrlFromBlob: () => dataUrlFromBlob,
   fetchChunk: () => fetchChunk,
   imageChunk: () => imageChunk,
   isChunk: () => isChunk,
@@ -233,6 +234,20 @@ async function imageChunk(image, metadata = {}) {
   const blob = await canvas.convertToBlob();
   return await blobChunk(blob, metadata);
 }
+function dataUrlFromBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = function() {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error(`result type ${typeof reader.result}`));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 async function audioChunk(audio, metadata = {}) {
   return fetchChunk(fetch(audio.src), metadata);
 }
@@ -267,7 +282,7 @@ function withMetadata(chunk, metadata) {
   };
 }
 function isProtoMessage(mimeType, messageType) {
-  return mimeType.type === "application" && mimeType.subtype === "x-protobuf" && mimeType.parameters?.type === messageType;
+  return mimeType.type === "application" && mimeType.subtype === "x-protobuf" && mimeType.parameters?.["type"] === messageType;
 }
 var JSON_MIME_TYPE = {
   type: "application",
@@ -654,7 +669,7 @@ function audioChunksToMediaStream(chunks) {
           continue;
         }
         const mimetypeParameters = chunk.metadata.mimetype.parameters;
-        let chunkSampleRate = Number(mimetypeParameters?.rate);
+        let chunkSampleRate = Number(mimetypeParameters?.["rate"]);
         if (isNaN(chunkSampleRate)) {
           chunkSampleRate = sampleRate;
         }
@@ -1200,8 +1215,6 @@ var Live2 = class extends Live {
           continue;
         }
       }
-      await outputs.context?.close();
-      await outputs.audio?.close();
     }
     void readAudio();
     void readContext();
@@ -1286,7 +1299,7 @@ function maybeAuthenticate() {
   while ((m = regex.exec(fragmentString)) !== null) {
     params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
   }
-  if (Object.keys(params).length > 0 && params.state) {
+  if (Object.keys(params).length > 0 && params["state"]) {
     const paramsJson = JSON.stringify(params);
     localStorage.setItem("oauth2-test-params", paramsJson);
   } else {

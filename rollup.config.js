@@ -9,7 +9,7 @@ const config = [
   {
     input: './dist/index.d.ts',
     output: [{ file: './dist/aiae.d.ts', format: 'es' }],
-    plugins: [dts({ respectExternal: true })],
+    plugins: [dts()],
   },
 ];
 

@@ -21,6 +21,7 @@ export default tseslint.config(
       "@typescript-eslint/restrict-template-expressions": "off",
       "@typescript-eslint/no-unnecessary-condition": "off",
       "@typescript-eslint/dot-notation": "off",
+      "@typescript-eslint/no-unsafe-call": "warn",
     }
   },
 )

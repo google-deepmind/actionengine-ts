@@ -5,6 +5,8 @@
  */
 
 import * as aiae from 'aiae';
+import { LitElement, html, css, PropertyValueMap } from 'lit';
+import { customElement, query, state } from 'lit/decorators.js';
 
 function apiKey(): string {
     const STORAGE_KEY = 'GENAI_API_KEY';
@@ -19,90 +21,95 @@ function apiKey(): string {
 }
 
 
-class LiveDemo extends HTMLElement {
-    static readonly observedAttributes = [];
-  
-    private audioEl = new Audio();
-    private statusEl = document.createElement('div');
-    private outputTextEl = document.createElement('div');
-  
-    connectedCallback() {
-      const shadow = this.attachShadow({mode: 'open'});
-  
-      shadow.appendChild(this.audioEl);
-  
-      this.statusEl.innerText = 'Hold key to speak';
-      shadow.appendChild(this.statusEl);
-  
-      let stream: MediaStream | null = null;
-  
-      let firstKeyDown = true;
+@customElement('live-demo')
+export class LiveDemo extends LitElement {
+  @state() accessor mic = false;
+  @query('.audio-out') accessor audioOut!: HTMLAudioElement;
 
-      const session = aiae.sessions.local();
+  private micStream?: MediaStream;
+  private session = aiae.sessions.local();
+  private micIn = this.session.createPipe<aiae.content.AudioChunk>();
+  private liveAction = new aiae.actions.google.genai.Live(apiKey(), 'gemini-2.0-flash-exp');
+  private outputs = this.session.run(this.liveAction, {audio: this.micIn}, ['audio']);
 
-      const audioIn = session.createPipe<aiae.content.AudioChunk>();
-    
-      const liveAction = new aiae.actions.google.genai.Live(apiKey(), 'gemini-2.0-flash-exp');
+  override firstUpdated(props: PropertyValueMap<unknown>): void {
+    super.firstUpdated(props);
+    const media = aiae.content.audioChunksToMediaStream(this.outputs.audio);
+    this.audioOut.srcObject = media.stream;
+  }
+  private async micOn() {
+    this.mic = true;
+    void this.audioOut.play();
+    this.micStream = await navigator.mediaDevices.getUserMedia({
+      video: false,
+      audio: true,
+    });
+    const audioChunks = aiae.content.mediaStreamToAudioChunks(this.micStream);
+    await this.micIn.write(audioChunks);
+  }
 
-      const outputs = session.run(liveAction, {audio: audioIn}, ['audio']);
+  private micOff() {
+    this.mic = false;
+    console.log('mic off', this.mic);
+    this.micStream?.getTracks().forEach(t => { t.stop(); });
+  }
 
-      const turnOnMic = async () => {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: false,
-          audio: true,
-        });
-        const audioChunks = aiae.content.mediaStreamToAudioChunks(stream);
-        await audioIn.write(audioChunks);
-      };
-  
-      const keydown = (event: KeyboardEvent) => {
-        if (event.altKey || event.metaKey || event.ctrlKey) {
-          // Don't trigger on alt-tab, etc.
-          document.addEventListener('keydown', keydown, {once: true});
-          return;
-        }
-        this.statusEl.innerText = 'Mic is live';
-        void turnOnMic();
+  protected override render() {
+    console.log('audio out', this.audioOut);
 
-        if (firstKeyDown) {
-          firstKeyDown = false;
-          void this.audioEl.play();
-        }
-      };
-  
-      document.addEventListener('keydown', keydown, {once: true});
-      document.addEventListener('keyup', () => {
-        this.statusEl.innerText = 'Hold key to speak';
-        if (stream) {
-          // Stop recording.
-          stream.getTracks().forEach((track) => {
-            track.stop();
-          });
-          stream = null;
-        }
-        document.addEventListener('keydown', keydown, {once: true});
-      });
+    const micCb = () => { if (this.mic) this.micOff(); else void this.micOn(); }
 
-      const mediaOut = aiae.content.audioChunksToMediaStream(outputs.audio);
-      this.audioEl.srcObject = mediaOut.stream;
-  
-      this.outputTextEl.style.fontFamily = 'monospace';
-      shadow.appendChild(this.outputTextEl);
-  
-    }
+    return html`<div class="container">
+      <div class="inputs">
+        <audio class="audio-out"></audio>
+        <video class="screen-out"></video>
+        <video class="video-out"></video>
+        <div class="text-out"></div>
+      </div>
+      <div class="input_controls">
+          <button @click="${micCb}" class="material-symbols-outlined mic button">mic</button>
+          <button class="material-symbols-outlined video button">videocam</button>
+          <button class="material-symbols-outlined screen button">devices</button>
+      </div>
+    </div>`;
   }
   
-  customElements.define('live-demo', LiveDemo);
-  
-  declare global {
-    interface HTMLElementTagNameMap {
-      'live-demo': LiveDemo;
+  static override styles = css`
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      height: 100vh;
     }
-  }
+    .input_controls {
+      padding: 1rem;
+      padding-bottom: 4rem;
+    }
+    .mic {
+      background-color: #2a4bcf;
+    }
+    .video {
+      background-color: #a81a1a
+    }
+    .screen {
+      background-color: #aeb107;
+    }
+    .button {
+      color: white;
+      margin: 1rem;
+      border: none;
+    }
+    .material-symbols-outlined {
+      font-family: "Material Symbols Outlined";
+      font-size: 24px;
+    }
+  `;
+
+}
 
 function main() {
-    const el = document.createElement('live-demo');
-    document.body.appendChild(el);
+  const el = document.createElement('live-demo');
+  document.body.appendChild(el);
 }
 
 main();

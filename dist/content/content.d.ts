@@ -58,6 +58,10 @@ export declare function chunkBlob(chunk: Chunk): Blob;
  */
 export declare function imageChunk(image: HTMLImageElement, metadata?: ChunkMetadata): Promise<Chunk>;
 /**
+ * Returns a data url from a blob.
+ */
+export declare function dataUrlFromBlob(blob: Blob): Promise<string>;
+/**
  * Converts a audio to a chunk.
  */
 export declare function audioChunk(audio: HTMLAudioElement, metadata?: ChunkMetadata): Promise<Chunk>;
@@ -117,6 +121,26 @@ export declare type AudioChunk = Chunk & {
     readonly metadata: {
         readonly mimetype: {
             readonly type: 'audio';
+        };
+    };
+};
+/**
+ * Type of a image chunk.
+ */
+export declare type ImageChunk = Chunk & {
+    readonly metadata: {
+        readonly mimetype: {
+            readonly type: 'image';
+        };
+    };
+};
+/**
+ * Type of a video chunk.
+ */
+export declare type VideoChunk = Chunk & {
+    readonly metadata: {
+        readonly mimetype: {
+            readonly type: 'video';
         };
     };
 };

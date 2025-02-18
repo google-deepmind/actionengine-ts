@@ -196,49 +196,23 @@ export async function imageChunk(
   return await blobChunk(blob, metadata);
 }
 
-// TODO(doug): Use media recorder for capturing content from media.
-// interface HTMLMediaElementWithCapture extends HTMLMediaElement {
-//   captureStream?(): MediaStream | null;
-// }
-// 
-// async function captureMediaFromElement(
-//   mediaElement: HTMLMediaElementWithCapture,
-//   maxDurationMs = 0,
-// ): Promise<Blob> {
-//   const stream = mediaElement.captureStream
-//     ? mediaElement.captureStream()
-//     : null;
-//   if (!stream) {
-//     throw new Error('Unable to capture media stream from element.');
-//   }
-
-//   const mediaRecorder = new MediaRecorder(stream);
-//   const chunks: Blob[] = [];
-
-//   let type = 'audio/ogg; codecs=opus';
-
-//   mediaRecorder.ondataavailable = (event) => {
-//     chunks.push(event.data);
-//     type = event.data.type;
-//   };
-
-//   const blob = new Promise<Blob>((resolve) => {
-//     mediaRecorder.onstop = () => {
-//       const blob = new Blob(chunks, {type});
-//       resolve(blob);
-//     };
-//   });
-
-//   mediaRecorder.start();
-
-//   if (maxDurationMs) {
-//     setTimeout(() => {
-//       mediaRecorder.stop();
-//     }, maxDurationMs);
-//   }
-
-//   return blob;
-// }
+/**
+ * Returns a data url from a blob. 
+ */
+export function dataUrlFromBlob(blob: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = function() {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error(`result type ${typeof reader.result}`));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 
 /**
  * Converts a audio to a chunk.
@@ -355,5 +329,23 @@ export declare type TextChunk = Chunk & {
 export declare type AudioChunk = Chunk & {
   readonly metadata: {
     readonly mimetype: {readonly type: 'audio'};
+  };
+};
+
+/**
+ * Type of a image chunk.
+ */
+export declare type ImageChunk = Chunk & {
+  readonly metadata: {
+    readonly mimetype: {readonly type: 'image'};
+  };
+};
+
+/**
+ * Type of a video chunk.
+ */
+export declare type VideoChunk = Chunk & {
+  readonly metadata: {
+    readonly mimetype: {readonly type: 'video'};
   };
 };
