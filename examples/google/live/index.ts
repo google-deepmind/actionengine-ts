@@ -32,9 +32,9 @@ export class LiveDemo extends LitElement {
   @state() accessor extra = false;
 
   @query('.audio-out') accessor audioOut!: HTMLAudioElement;
-  @query('.video-out') accessor videoOut!: HTMLAudioElement;
-  @query('.screen-out') accessor screenOut!: HTMLAudioElement;
-  @query('.extra-out') accessor extraOut!: HTMLAudioElement;
+  @query('.video-out') accessor videoOut!: HTMLVideoElement;
+  @query('.screen-out') accessor screenOut!: HTMLVideoElement;
+  @query('.extra-out') accessor extraOut!: HTMLDivElement;
 
   private micStream?: MediaStream;
   private videoStream?: MediaStream;
