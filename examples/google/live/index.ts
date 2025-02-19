@@ -53,7 +53,6 @@ export class LiveDemo extends LitElement {
     this.audioOut.srcObject = media.stream;
     // First interaction trigger playing audio.
     this.shadowRoot?.children[0].addEventListener('click', () => {
-      console.log('click');
       void this.audioOut.play();
     }, { once: true });
   }
