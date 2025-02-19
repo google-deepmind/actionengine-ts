@@ -79,7 +79,7 @@ export async function* mediaStreamToImageChunks(media: MediaStream, options: Par
         const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
         yield (await fetchChunk(fetch(dataUrl))) as ImageChunk;
         await new Promise((resolve) => {
-            setTimeout(resolve, (opts.frameRate) * 1000);
+            setTimeout(resolve, 1000.0 / opts.frameRate);
         });
     }
 }
