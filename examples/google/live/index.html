@@ -1,8 +1,16 @@
 <!DOCTYPE html>
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 
 <body>
@@ -11,6 +19,7 @@
             "imports": {
                 "@google/genai": "/lib/genai/genai.js",
                 "aiae": "/index.js",
+                "@material/web/": "https://esm.run/@material/web/",
                 "lit-signals": "https://esm.run/lit-signals",
                 "lit": "https://cdn.jsdelivr.net/gh/lit/dist@3.2.1/all/lit-all.min.js",
                 "lit/decorators.js": "https://esm.run/lit/decorators"

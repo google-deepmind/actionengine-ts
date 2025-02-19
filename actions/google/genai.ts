@@ -8,16 +8,17 @@
 import { Input, Output, Session, Chunk } from '../../interfaces.js';
 import * as genai from "@google/genai";
 import { GenerateContent as AbstractGenerateContent, Live as AbstractLive } from '../common.js';
-import { chunkText, textChunk, AudioChunk } from '../../content/content.js';
+import { chunkText, textChunk, AudioChunk, ImageChunk } from '../../content/content.js';
 import { parseMimetype, stringifyMimetype } from '../../content/mime.js';
 import { encode as b64encode, decode as b64decode } from '../../base64/index.js';
+import { merge } from '../../async/index.js';
 
 
 const clients = new Map<string, genai.Client>();
 function genAI(apiKey: string) {
     let client = clients.get(apiKey);
     if (!client) {
-        client = new genai.Client({vertexai: false, apiKey});
+        client = new genai.Client({ vertexai: false, apiKey });
         clients.set(apiKey, client);
     }
     return client;
@@ -29,7 +30,19 @@ export class Live extends AbstractLive {
         super();
     }
 
-    override async run(session: Session, inputs: { audio: Input<AudioChunk>, context?: Input, system?: Input }, outputs: { audio?: Output<AudioChunk>, context?: Output }): Promise<void> {
+    override async run(session: Session,
+        inputs: {
+            audio?: Input<AudioChunk>,
+            video?: Input<ImageChunk>,
+            screen?: Input<ImageChunk>,
+            context?: Input,
+            system?: Input,
+        },
+        outputs: {
+            audio?: Output<AudioChunk>,
+            context?: Output,
+        }): Promise<void> {
+
         const client = genAI(this.apiKey);
         const config: genai.LiveConnectConfig = {};
 
@@ -37,25 +50,28 @@ export class Live extends AbstractLive {
             const system = await inputs.system;
             const systemString = system.map((c) => chunkText(c)).join("");
             config.systemInstruction = {
-                parts: [{text: systemString}],
+                parts: [{ text: systemString }],
             }
         }
-        
+
         const live = await client.live.connect(this.model, config);
 
-        async function readAudio() {
-            for await (const chunk of inputs.audio) {
+        async function readInputs() {
+            const arr = [inputs.audio, inputs.video, inputs.screen].filter((x) => !!x);
+            if (arr.length === 0) return;
+            for await (const chunk of merge(...arr)) {
                 if (chunk.data) {
                     const i: genai.LiveClientRealtimeInput = {
                         mediaChunks: [{
                             mimeType: stringifyMimetype(chunk.metadata.mimetype),
                             data: b64encode(chunk.data),
-                    }]};
+                        }]
+                    };
                     live.send(i);
                 }
             }
         }
-        
+
         async function readContext() {
             if (!inputs.context) {
                 return;
@@ -68,7 +84,7 @@ export class Live extends AbstractLive {
                                 text: chunkText(chunk),
                             }],
                         }],
-                        turnComplete: true,
+                        turnComplete: false,
                     };
                     live.send(i);
                 }
@@ -76,7 +92,7 @@ export class Live extends AbstractLive {
         }
 
         async function writeOutputs() {
-            while(true) {
+            while (true) {
                 const resp = await live.receive();
                 if (resp.serverContent?.modelTurn) {
                     const turn = resp.serverContent.modelTurn;
@@ -124,7 +140,7 @@ export class Live extends AbstractLive {
             // await outputs.audio?.close();
         }
 
-        void readAudio();
+        void readInputs();
         void readContext();
         await writeOutputs();
     }
@@ -137,7 +153,7 @@ export class GenerateContent extends AbstractGenerateContent {
     constructor(private readonly apiKey: string, private readonly model: string) {
         super();
     }
-    
+
     override async run(session: Session, inputs: { prompt: Input }, outputs: { response?: Output }): Promise<void> {
         if (!outputs.response) {
             return;

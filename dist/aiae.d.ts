@@ -155,6 +155,10 @@ declare function chunkBlob(chunk: Chunk): Blob;
  */
 declare function imageChunk(image: HTMLImageElement, metadata?: ChunkMetadata): Promise<Chunk>;
 /**
+ * Returns a data url from a blob.
+ */
+declare function dataUrlFromBlob(blob: Blob): Promise<string>;
+/**
  * Converts a audio to a chunk.
  */
 declare function audioChunk(audio: HTMLAudioElement, metadata?: ChunkMetadata): Promise<Chunk>;
@@ -217,6 +221,26 @@ declare type AudioChunk = Chunk & {
         };
     };
 };
+/**
+ * Type of a image chunk.
+ */
+declare type ImageChunk = Chunk & {
+    readonly metadata: {
+        readonly mimetype: {
+            readonly type: 'image';
+        };
+    };
+};
+/**
+ * Type of a video chunk.
+ */
+declare type VideoChunk = Chunk & {
+    readonly metadata: {
+        readonly mimetype: {
+            readonly type: 'video';
+        };
+    };
+};
 
 /**
  * @fileoverview Library for working with lazy tree like stream of chunks.
@@ -271,6 +295,23 @@ declare function mediaStreamToAudioChunks(media: MediaStream): AsyncGenerator<Au
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/** Converts image chunks to a Media Stream. */
+declare function imageChunksToMediaStream(chunks: AsyncIterable<Chunk>, options?: {
+    frameRate?: number;
+}): MediaStream;
+interface MediaToImageOptions {
+    frameRate: number;
+    scale: number;
+}
+/** Converts a Media Stream to image chunks. */
+declare function mediaStreamToImageChunks(media: MediaStream, options?: Partial<MediaToImageOptions>): AsyncGenerator<ImageChunk>;
+
+/**
+ * @fileoverview Utilities for processing content chunks.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /**
  * Converts a mimetype to a string.
  */
@@ -287,6 +328,7 @@ declare function parseMimetype(mimetype?: string): Mimetype;
  */
 
 type index_d$7_AudioChunk = AudioChunk;
+type index_d$7_ImageChunk = ImageChunk;
 declare const index_d$7_JSON_MIME_TYPE: typeof JSON_MIME_TYPE;
 type index_d$7_PlainTextChunk = PlainTextChunk;
 type index_d$7_ROLE = ROLE;
@@ -294,6 +336,7 @@ declare const index_d$7_ROLE: typeof ROLE;
 type index_d$7_Role = Role;
 declare const index_d$7_TEXT_MIME_TYPE: typeof TEXT_MIME_TYPE;
 type index_d$7_TextChunk = TextChunk;
+type index_d$7_VideoChunk = VideoChunk;
 declare const index_d$7_assistantPrompt: typeof assistantPrompt;
 declare const index_d$7_audioChunk: typeof audioChunk;
 declare const index_d$7_audioChunksToMediaStream: typeof audioChunksToMediaStream;
@@ -302,8 +345,10 @@ declare const index_d$7_chunkBlob: typeof chunkBlob;
 declare const index_d$7_chunkJson: typeof chunkJson;
 declare const index_d$7_chunkText: typeof chunkText;
 declare const index_d$7_contextPrompt: typeof contextPrompt;
+declare const index_d$7_dataUrlFromBlob: typeof dataUrlFromBlob;
 declare const index_d$7_fetchChunk: typeof fetchChunk;
 declare const index_d$7_imageChunk: typeof imageChunk;
+declare const index_d$7_imageChunksToMediaStream: typeof imageChunksToMediaStream;
 declare const index_d$7_isChunk: typeof isChunk;
 declare const index_d$7_isDataChunk: typeof isDataChunk;
 declare const index_d$7_isJsonChunk: typeof isJsonChunk;
@@ -312,6 +357,7 @@ declare const index_d$7_isRefChunk: typeof isRefChunk;
 declare const index_d$7_isTextChunk: typeof isTextChunk;
 declare const index_d$7_jsonChunk: typeof jsonChunk;
 declare const index_d$7_mediaStreamToAudioChunks: typeof mediaStreamToAudioChunks;
+declare const index_d$7_mediaStreamToImageChunks: typeof mediaStreamToImageChunks;
 declare const index_d$7_parseMimetype: typeof parseMimetype;
 declare const index_d$7_prompt: typeof prompt;
 declare const index_d$7_promptLiteralWithMetadata: typeof promptLiteralWithMetadata;
@@ -323,7 +369,7 @@ declare const index_d$7_userPrompt: typeof userPrompt;
 declare const index_d$7_videoChunk: typeof videoChunk;
 declare const index_d$7_withMetadata: typeof withMetadata;
 declare namespace index_d$7 {
-  export { type index_d$7_AudioChunk as AudioChunk, index_d$7_JSON_MIME_TYPE as JSON_MIME_TYPE, type index_d$7_PlainTextChunk as PlainTextChunk, index_d$7_ROLE as ROLE, type index_d$7_Role as Role, index_d$7_TEXT_MIME_TYPE as TEXT_MIME_TYPE, type index_d$7_TextChunk as TextChunk, index_d$7_assistantPrompt as assistantPrompt, index_d$7_audioChunk as audioChunk, index_d$7_audioChunksToMediaStream as audioChunksToMediaStream, index_d$7_blobChunk as blobChunk, index_d$7_chunkBlob as chunkBlob, index_d$7_chunkJson as chunkJson, index_d$7_chunkText as chunkText, index_d$7_contextPrompt as contextPrompt, index_d$7_fetchChunk as fetchChunk, index_d$7_imageChunk as imageChunk, index_d$7_isChunk as isChunk, index_d$7_isDataChunk as isDataChunk, index_d$7_isJsonChunk as isJsonChunk, index_d$7_isProtoMessage as isProtoMessage, index_d$7_isRefChunk as isRefChunk, index_d$7_isTextChunk as isTextChunk, index_d$7_jsonChunk as jsonChunk, index_d$7_mediaStreamToAudioChunks as mediaStreamToAudioChunks, index_d$7_parseMimetype as parseMimetype, index_d$7_prompt as prompt, index_d$7_promptLiteralWithMetadata as promptLiteralWithMetadata, index_d$7_promptWithMetadata as promptWithMetadata, index_d$7_stringifyMimetype as stringifyMimetype, index_d$7_systemPrompt as systemPrompt, index_d$7_textChunk as textChunk, index_d$7_userPrompt as userPrompt, index_d$7_videoChunk as videoChunk, index_d$7_withMetadata as withMetadata };
+  export { type index_d$7_AudioChunk as AudioChunk, type index_d$7_ImageChunk as ImageChunk, index_d$7_JSON_MIME_TYPE as JSON_MIME_TYPE, type index_d$7_PlainTextChunk as PlainTextChunk, index_d$7_ROLE as ROLE, type index_d$7_Role as Role, index_d$7_TEXT_MIME_TYPE as TEXT_MIME_TYPE, type index_d$7_TextChunk as TextChunk, type index_d$7_VideoChunk as VideoChunk, index_d$7_assistantPrompt as assistantPrompt, index_d$7_audioChunk as audioChunk, index_d$7_audioChunksToMediaStream as audioChunksToMediaStream, index_d$7_blobChunk as blobChunk, index_d$7_chunkBlob as chunkBlob, index_d$7_chunkJson as chunkJson, index_d$7_chunkText as chunkText, index_d$7_contextPrompt as contextPrompt, index_d$7_dataUrlFromBlob as dataUrlFromBlob, index_d$7_fetchChunk as fetchChunk, index_d$7_imageChunk as imageChunk, index_d$7_imageChunksToMediaStream as imageChunksToMediaStream, index_d$7_isChunk as isChunk, index_d$7_isDataChunk as isDataChunk, index_d$7_isJsonChunk as isJsonChunk, index_d$7_isProtoMessage as isProtoMessage, index_d$7_isRefChunk as isRefChunk, index_d$7_isTextChunk as isTextChunk, index_d$7_jsonChunk as jsonChunk, index_d$7_mediaStreamToAudioChunks as mediaStreamToAudioChunks, index_d$7_mediaStreamToImageChunks as mediaStreamToImageChunks, index_d$7_parseMimetype as parseMimetype, index_d$7_prompt as prompt, index_d$7_promptLiteralWithMetadata as promptLiteralWithMetadata, index_d$7_promptWithMetadata as promptWithMetadata, index_d$7_stringifyMimetype as stringifyMimetype, index_d$7_systemPrompt as systemPrompt, index_d$7_textChunk as textChunk, index_d$7_userPrompt as userPrompt, index_d$7_videoChunk as videoChunk, index_d$7_withMetadata as withMetadata };
 }
 
 /**
@@ -390,7 +436,9 @@ declare abstract class GenerateContent$1 extends Action {
 /** Well defined Live Action */
 declare abstract class Live$1 extends Action {
     abstract run(session: Session, inputs: {
-        audio: Input<AudioChunk>;
+        audio?: Input<AudioChunk>;
+        video?: Input<ImageChunk>;
+        screen?: Input<ImageChunk>;
         context?: Input;
         system?: Input;
     }, outputs: {
@@ -425,7 +473,9 @@ declare class Live extends Live$1 {
     private readonly model;
     constructor(apiKey: string, model?: string);
     run(session: Session, inputs: {
-        audio: Input<AudioChunk>;
+        audio?: Input<AudioChunk>;
+        video?: Input<ImageChunk>;
+        screen?: Input<ImageChunk>;
         context?: Input;
         system?: Input;
     }, outputs: {

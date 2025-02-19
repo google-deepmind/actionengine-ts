@@ -5,13 +5,15 @@
  */
 import { Input, Output, Session } from '../../interfaces.js';
 import { GenerateContent as AbstractGenerateContent, Live as AbstractLive } from '../common.js';
-import { AudioChunk } from '../../content/content.js';
+import { AudioChunk, ImageChunk } from '../../content/content.js';
 export declare class Live extends AbstractLive {
     private readonly apiKey;
     private readonly model;
     constructor(apiKey: string, model?: string);
     run(session: Session, inputs: {
-        audio: Input<AudioChunk>;
+        audio?: Input<AudioChunk>;
+        video?: Input<ImageChunk>;
+        screen?: Input<ImageChunk>;
         context?: Input;
         system?: Input;
     }, outputs: {

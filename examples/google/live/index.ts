@@ -7,39 +7,58 @@
 import * as aiae from 'aiae';
 import { LitElement, html, css, PropertyValueMap } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
+// import '@material/web/all.js';
+import '@material/web/iconbutton/icon-button.js';
+import '@material/web/icon/icon.js';
 
 function apiKey(): string {
-    const STORAGE_KEY = 'GENAI_API_KEY';
-    let key = localStorage.getItem(STORAGE_KEY);
-    if (!key) {
-        key = prompt('API KEY') ?? '';
-        if (key) {
-            localStorage.setItem(STORAGE_KEY, key);
-        }
+  const STORAGE_KEY = 'GENAI_API_KEY';
+  let key = localStorage.getItem(STORAGE_KEY);
+  if (!key) {
+    key = prompt('API KEY') ?? '';
+    if (key) {
+      localStorage.setItem(STORAGE_KEY, key);
     }
-    return key;
+  }
+  return key;
 }
 
 
 @customElement('live-demo')
 export class LiveDemo extends LitElement {
   @state() accessor mic = false;
+  @state() accessor video = false;
+  @state() accessor screen = false;
+  @state() accessor extra = false;
+
   @query('.audio-out') accessor audioOut!: HTMLAudioElement;
+  @query('.video-out') accessor videoOut!: HTMLAudioElement;
+  @query('.screen-out') accessor screenOut!: HTMLAudioElement;
+  @query('.extra-out') accessor extraOut!: HTMLAudioElement;
 
   private micStream?: MediaStream;
+  private videoStream?: MediaStream;
+  private screenStream?: MediaStream;
+
   private session = aiae.sessions.local();
   private micIn = this.session.createPipe<aiae.content.AudioChunk>();
+  private videoIn = this.session.createPipe<aiae.content.ImageChunk>();
+  private screenIn = this.session.createPipe<aiae.content.ImageChunk>();
   private liveAction = new aiae.actions.google.genai.Live(apiKey(), 'gemini-2.0-flash-exp');
-  private outputs = this.session.run(this.liveAction, {audio: this.micIn}, ['audio']);
+  private outputs = this.session.run(this.liveAction, { audio: this.micIn, video: this.videoIn, screen: this.screenIn, }, ['audio']);
 
   override firstUpdated(props: PropertyValueMap<unknown>): void {
     super.firstUpdated(props);
     const media = aiae.content.audioChunksToMediaStream(this.outputs.audio);
     this.audioOut.srcObject = media.stream;
+    // First interaction trigger playing audio.
+    this.shadowRoot?.children[0].addEventListener('click', () => {
+      console.log('click');
+      void this.audioOut.play();
+    }, { once: true });
   }
   private async micOn() {
     this.mic = true;
-    void this.audioOut.play();
     this.micStream = await navigator.mediaDevices.getUserMedia({
       video: false,
       audio: true,
@@ -50,58 +69,118 @@ export class LiveDemo extends LitElement {
 
   private micOff() {
     this.mic = false;
-    console.log('mic off', this.mic);
     this.micStream?.getTracks().forEach(t => { t.stop(); });
   }
 
+  private async videoOn() {
+    this.video = true;
+    this.videoStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false,
+    });
+    this.videoOut.srcObject = this.videoStream;
+    this.videoOut.style.display = "flex";
+    const videoChunks = aiae.content.mediaStreamToImageChunks(this.videoStream);
+    await this.videoIn.write(videoChunks);
+  }
+
+  private videoOff() {
+    this.video = false;
+    this.videoOut.style.display = "none";
+    this.videoStream?.getTracks().forEach(t => { t.stop(); });
+  }
+
+  private async screenOn() {
+    this.screen = true;
+    this.screenStream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: false,
+    });
+    this.screenOut.srcObject = this.screenStream;
+    this.screenOut.style.display = "flex";
+    const screenChunks = aiae.content.mediaStreamToImageChunks(this.screenStream);
+    await this.screenIn.write(screenChunks);
+  }
+
+  private screenOff() {
+    this.screen = false;
+    this.screenOut.style.display = "none";
+    this.screenStream?.getTracks().forEach(t => { t.stop(); });
+  }
+
+  private extraOn() {
+    this.extra = true;
+    this.extraOut.style.display = 'flex';
+  }
+
+  private extraOff() {
+    this.extra = false;
+    this.extraOut.style.display = 'none';
+  }
+
   protected override render() {
-    console.log('audio out', this.audioOut);
 
     const micCb = () => { if (this.mic) this.micOff(); else void this.micOn(); }
+    const videoCb = () => { if (this.video) this.videoOff(); else void this.videoOn(); }
+    const screenCb = () => { if (this.screen) this.screenOff(); else void this.screenOn(); }
+    const extraCb = () => { if (this.extra) this.extraOff(); else this.extraOn(); }
 
     return html`<div class="container">
       <div class="inputs">
         <audio class="audio-out"></audio>
-        <video class="screen-out"></video>
-        <video class="video-out"></video>
-        <div class="text-out"></div>
+        <video autoplay muted class="screen-out"></video>
+        <video autoplay muted class="video-out"></video>
+        <div class="extra-out">lorem ipsum hello world</div>
       </div>
       <div class="input_controls">
-          <button @click="${micCb}" class="material-symbols-outlined mic button">mic</button>
-          <button class="material-symbols-outlined video button">videocam</button>
-          <button class="material-symbols-outlined screen button">devices</button>
+          <md-icon-button @click="${micCb}" toggle>
+            <md-icon>mic</md-icon>
+            <md-icon slot="selected">mic_off</md-icon>
+          </md-icon-button>
+          <md-icon-button @click="${videoCb}" toggle>
+            <md-icon>videocam</md-icon>
+            <md-icon slot="selected">videocam_off</md-icon>
+          </md-icon-button>
+          <md-icon-button @click="${screenCb}" toggle>
+            <md-icon>devices</md-icon>
+            <md-icon slot="selected">devices_off</md-icon>
+          </md-icon-button>
+          <md-icon-button @click="${extraCb}" toggle>
+            <md-icon>code</md-icon>
+            <md-icon slot="selected">code_off</md-icon>
+          </md-icon-button>
       </div>
     </div>`;
   }
-  
+
   static override styles = css`
     .container {
       display: flex;
-      justify-content: center;
-      align-items: flex-end;
+      flex-direction: column;
       height: 100vh;
+      justify-content: center;
     }
     .input_controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
       padding: 1rem;
       padding-bottom: 4rem;
     }
-    .mic {
-      background-color: #2a4bcf;
+    .inputs {
+      display: flex;
+      justify-content: space-evenly;
+      overflow: hidden;
     }
-    .video {
-      background-color: #a81a1a
+    .inputs > * {
+      display: none;
+      object-fit: contain;
+      width: 100%;
+      height: 100%;
     }
-    .screen {
-      background-color: #aeb107;
-    }
-    .button {
-      color: white;
-      margin: 1rem;
-      border: none;
-    }
-    .material-symbols-outlined {
-      font-family: "Material Symbols Outlined";
-      font-size: 24px;
+    .extra-out {
+      justify-content: center;
+      align-items: center;
     }
   `;
 

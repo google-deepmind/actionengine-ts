@@ -34,6 +34,7 @@ __export(content_exports, {
   dataUrlFromBlob: () => dataUrlFromBlob,
   fetchChunk: () => fetchChunk,
   imageChunk: () => imageChunk,
+  imageChunksToMediaStream: () => imageChunksToMediaStream,
   isChunk: () => isChunk,
   isDataChunk: () => isDataChunk,
   isJsonChunk: () => isJsonChunk,
@@ -42,6 +43,7 @@ __export(content_exports, {
   isTextChunk: () => isTextChunk,
   jsonChunk: () => jsonChunk,
   mediaStreamToAudioChunks: () => mediaStreamToAudioChunks,
+  mediaStreamToImageChunks: () => mediaStreamToImageChunks,
   parseMimetype: () => parseMimetype,
   prompt: () => prompt2,
   promptLiteralWithMetadata: () => promptLiteralWithMetadata,
@@ -778,6 +780,73 @@ async function* mediaStreamToAudioChunks(media) {
   }
 }
 
+// content/video.js
+function imageChunksToMediaStream(chunks, options) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  let first = true;
+  async function read() {
+    try {
+      for await (const c of chunks) {
+        if (c.metadata?.mimetype?.type !== "image") {
+          continue;
+        }
+        const img = new Image();
+        if (c.data) {
+          img.src = await dataUrlFromBlob(new Blob([c.data], { type: stringifyMimetype(c.metadata?.mimetype) }));
+        } else {
+          throw new Error(`Not yet implemented ${JSON.stringify(c)}`);
+        }
+        if (first) {
+          first = false;
+          canvas.width = img.width;
+          canvas.height = img.height;
+          console.log(canvas.width, canvas.height);
+        }
+        ctx?.drawImage(img, 0, 0);
+      }
+    } finally {
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+    }
+  }
+  void read();
+  const stream = canvas.captureStream(options?.frameRate);
+  return stream;
+}
+var mediaToImageOptions = { frameRate: 1, scale: 0.5 };
+async function* mediaStreamToImageChunks(media, options = {}) {
+  const opts = { ...mediaToImageOptions, ...options };
+  const video = document.createElement("video");
+  video.srcObject = media;
+  video.autoplay = true;
+  video.muted = true;
+  await new Promise((resolve, reject) => {
+    video.addEventListener("loadeddata", () => {
+      resolve();
+    });
+    video.addEventListener("error", (e) => {
+      reject(new Error(`${e.error}`));
+    });
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth * opts.scale;
+  canvas.height = video.videoHeight * opts.scale;
+  const ctx = canvas.getContext("2d");
+  while (true) {
+    if (!media.active) {
+      break;
+    }
+    ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 1);
+    yield await fetchChunk(fetch(dataUrl));
+    await new Promise((resolve) => {
+      setTimeout(resolve, opts.frameRate * 1e3);
+    });
+  }
+}
+
 // sessions/index.js
 var sessions_exports = {};
 __export(sessions_exports, {
@@ -1149,8 +1218,11 @@ var Live2 = class extends Live {
       };
     }
     const live = await client.live.connect(this.model, config);
-    async function readAudio() {
-      for await (const chunk of inputs.audio) {
+    async function readInputs() {
+      const arr = [inputs.audio, inputs.video, inputs.screen].filter((x) => !!x);
+      if (arr.length === 0)
+        return;
+      for await (const chunk of merge(...arr)) {
         if (chunk.data) {
           const i = {
             mediaChunks: [{
@@ -1174,7 +1246,7 @@ var Live2 = class extends Live {
                 text: chunkText(chunk)
               }]
             }],
-            turnComplete: true
+            turnComplete: false
           };
           live.send(i);
         }
@@ -1225,7 +1297,7 @@ var Live2 = class extends Live {
         }
       }
     }
-    void readAudio();
+    void readInputs();
     void readContext();
     await writeOutputs2();
   }
