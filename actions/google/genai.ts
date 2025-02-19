@@ -18,7 +18,11 @@ const clients = new Map<string, genai.Client>();
 function genAI(apiKey: string) {
     let client = clients.get(apiKey);
     if (!client) {
-        client = new genai.Client({ vertexai: false, apiKey });
+        const httpOptions: genai.HttpOptions = {
+            baseUrl: 'https://preprod-generativelanguage.googleapis.com',
+            apiVersion: 'v1alpha',
+        };
+        client = new genai.Client({ vertexai: false, apiKey, httpOptions });
         clients.set(apiKey, client);
     }
     return client;

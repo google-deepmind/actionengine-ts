@@ -12,9 +12,9 @@ export declare class LiveDemo extends LitElement {
     accessor screen: boolean;
     accessor extra: boolean;
     accessor audioOut: HTMLAudioElement;
-    accessor videoOut: HTMLAudioElement;
-    accessor screenOut: HTMLAudioElement;
-    accessor extraOut: HTMLAudioElement;
+    accessor videoOut: HTMLVideoElement;
+    accessor screenOut: HTMLVideoElement;
+    accessor extraOut: HTMLDivElement;
     private micStream?;
     private videoStream?;
     private screenStream?;

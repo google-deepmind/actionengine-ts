@@ -1144,7 +1144,7 @@ export declare class GenerateContentResponse {
     promptFeedback?: GenerateContentResponsePromptFeedback;
     /** Usage metadata about the response(s). */
     usageMetadata?: GenerateContentResponseUsageMetadata;
-    text(): string | null;
+    text(): string | undefined;
     functionCalls(): FunctionCall[] | undefined;
 }
 

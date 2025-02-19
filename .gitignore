@@ -18,3 +18,4 @@ tsconfig.tsbuildinfo
 !dist/**
 !lib/genai/*.js
 !lib/genai/*.d.ts
+!lib/genai/*.js.map

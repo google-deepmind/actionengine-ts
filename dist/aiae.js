@@ -833,7 +833,7 @@ async function* mediaStreamToImageChunks(media, options = {}) {
     const dataUrl = canvas.toDataURL("image/jpeg", 1);
     yield await fetchChunk(fetch(dataUrl));
     await new Promise((resolve) => {
-      setTimeout(resolve, opts.frameRate * 1e3);
+      setTimeout(resolve, 1e3 / opts.frameRate);
     });
   }
 }
@@ -1185,7 +1185,11 @@ var clients = /* @__PURE__ */ new Map();
 function genAI(apiKey) {
   let client = clients.get(apiKey);
   if (!client) {
-    client = new genai.Client({ vertexai: false, apiKey });
+    const httpOptions = {
+      baseUrl: "https://preprod-generativelanguage.googleapis.com",
+      apiVersion: "v1alpha"
+    };
+    client = new genai.Client({ vertexai: false, apiKey, httpOptions });
     clients.set(apiKey, client);
   }
   return client;
