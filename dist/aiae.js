@@ -622,50 +622,62 @@ function promptWithMetadata(prompt3, metadata) {
 var DEFAULT_OUTPUT_SAMPLE_RATE = 24e3;
 var DEFAULT_INPUT_SAMPLE_RATE = 16e3;
 var DEFAULT_NUM_CHANNELS = 1;
-async function decodeAudioData(chunk, ctx, sampleRate, numChannels) {
+function decodeAudioData(chunk) {
   const data = chunk.data;
   if (!data) {
     throw new Error("Chunk without data.");
   }
-  const bufferLength = new Int16Array(data.buffer).length;
-  const buffer = ctx.createBuffer(numChannels, bufferLength, sampleRate);
   const mimetype = chunk.metadata?.mimetype;
   if (!mimetype) {
     throw new Error("Chunk without mimetype.");
   }
-  if (mimetype.type === "audio" && mimetype.subtype === "ogg") {
-    const blob = new Blob([data.buffer], { type: "audio/ogg" });
-    const oggBuffer = await ctx.decodeAudioData(await blob.arrayBuffer());
-    for (let i = 0; i < numChannels; i++) {
-      buffer.copyToChannel(oggBuffer.getChannelData(i), i);
-    }
-  } else if (mimetype.type === "audio" && mimetype.subtype === "pcm") {
+  if (mimetype.type === "audio" && mimetype.subtype === "pcm") {
     const dataInt16 = new Int16Array(data.buffer);
-    const l = dataInt16.length;
-    const dataFloat32 = new Float32Array(l);
-    for (let i = 0; i < l; i++) {
+    const len = dataInt16.length;
+    const dataFloat32 = new Float32Array(len);
+    for (let i = 0; i < len; i++) {
       dataFloat32[i] = dataInt16[i] / 32768;
     }
-    for (let i = 0; i < numChannels; i++) {
-      const channel = dataFloat32.filter((_, index) => index % numChannels === i);
-      buffer.copyToChannel(channel, i);
-    }
+    return dataFloat32;
   } else {
     throw new Error(`Unsupported mime type: ${JSON.stringify(mimetype)}`);
+  }
+}
+function createAudioBuffer(ctx, sampleRate, numChannels, data) {
+  const buffer = ctx.createBuffer(numChannels, data.length / numChannels, sampleRate);
+  if (numChannels == 0) {
+    buffer.copyToChannel(data, 0);
+  } else {
+    for (let i = 0; i < numChannels; i++) {
+      const channel = data.filter((_, index) => index % numChannels === i);
+      buffer.copyToChannel(channel, i);
+    }
   }
   return buffer;
 }
 function audioChunksToMediaStream(chunks) {
   const sampleRate = DEFAULT_OUTPUT_SAMPLE_RATE;
   const numChannels = DEFAULT_NUM_CHANNELS;
-  const ctx = new AudioContext({ sampleRate });
-  const dest = ctx.createMediaStreamDestination();
-  let source = null;
-  let playbackStartTime = 0;
-  let totalBufferedSeconds = 0;
+  const media = new MediaStream();
+  function nextContext(currentCtx) {
+    if (currentCtx) {
+      void currentCtx.close();
+    }
+    const ctx2 = new AudioContext({ sampleRate });
+    const dest2 = ctx2.createMediaStreamDestination();
+    media.getTracks().forEach((t) => {
+      media.removeTrack(t);
+    });
+    dest2.stream.getTracks().forEach((t) => {
+      media.addTrack(t);
+    });
+    return [ctx2, dest2];
+  }
+  ;
+  let [ctx, dest] = nextContext();
   async function read() {
     try {
-      let nextSource = null;
+      let nextStartTime = 0;
       for await (const chunk of chunks) {
         if (chunk.metadata?.mimetype?.type !== "audio") {
           continue;
@@ -675,33 +687,17 @@ function audioChunksToMediaStream(chunks) {
         if (isNaN(chunkSampleRate)) {
           chunkSampleRate = sampleRate;
         }
-        let buffer;
-        try {
-          buffer = await decodeAudioData(chunk, ctx, chunkSampleRate, numChannels);
-        } catch (e) {
-          console.error("Error decoding audio data", e);
-          continue;
+        if (ctx.currentTime > nextStartTime) {
+          [ctx, dest] = nextContext(ctx);
+          nextStartTime = ctx.currentTime;
         }
-        nextSource = ctx.createBufferSource();
-        nextSource.buffer = buffer;
-        nextSource.connect(dest);
-        let nextStartTime;
-        const PLAYBACK_BUFFER_SECONDS = 0.1;
-        if (!source) {
-          playbackStartTime = ctx.currentTime + PLAYBACK_BUFFER_SECONDS;
-          nextStartTime = playbackStartTime;
-        } else {
-          nextStartTime = playbackStartTime + totalBufferedSeconds;
-          if (nextStartTime < ctx.currentTime + PLAYBACK_BUFFER_SECONDS) {
-            playbackStartTime = ctx.currentTime + PLAYBACK_BUFFER_SECONDS;
-            nextStartTime = playbackStartTime;
-            totalBufferedSeconds = 0;
-          }
-        }
-        nextSource.start(nextStartTime);
-        totalBufferedSeconds += buffer.duration;
-        source = nextSource;
-        nextSource = null;
+        const audioData = decodeAudioData(chunk);
+        const audioBuffer = createAudioBuffer(ctx, sampleRate, numChannels, audioData);
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(dest);
+        source.start(nextStartTime);
+        nextStartTime = nextStartTime + audioBuffer.duration;
       }
       await ctx.close();
     } finally {
@@ -711,7 +707,7 @@ function audioChunksToMediaStream(chunks) {
     }
   }
   void read();
-  return dest;
+  return media;
 }
 async function* mediaStreamToAudioChunks(media) {
   const sampleRate = DEFAULT_INPUT_SAMPLE_RATE;
@@ -813,14 +809,7 @@ async function* mediaStreamToImageChunks(media, options = {}) {
   video.srcObject = media;
   video.autoplay = true;
   video.muted = true;
-  await new Promise((resolve, reject) => {
-    video.addEventListener("loadeddata", () => {
-      resolve();
-    });
-    video.addEventListener("error", (e) => {
-      reject(new Error(`${e.error}`));
-    });
-  });
+  await video.play();
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth * opts.scale;
   canvas.height = video.videoHeight * opts.scale;
@@ -1252,7 +1241,6 @@ var Live2 = class extends Live {
         const resp = await live.receive();
         if (resp.serverContent?.modelTurn) {
           const turn = resp.serverContent.modelTurn;
-          console.log(turn);
           if (turn.parts) {
             for (const part of turn.parts) {
               if (part.text) {
@@ -1275,11 +1263,11 @@ var Live2 = class extends Live {
           }
         }
         if (resp.serverContent?.turnComplete) {
-          console.log("complete");
+          console.log("complete turn");
           continue;
         }
         if (resp.serverContent?.interrupted) {
-          console.log("interupted");
+          console.log("interupted turn");
           continue;
         }
         if (resp.toolCall) {

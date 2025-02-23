@@ -100,7 +100,6 @@ export class Live extends AbstractLive {
                 const resp = await live.receive();
                 if (resp.serverContent?.modelTurn) {
                     const turn = resp.serverContent.modelTurn;
-                    console.log(turn);
                     if (turn.parts) {
                         for (const part of turn.parts) {
                             if (part.text) {
@@ -123,11 +122,11 @@ export class Live extends AbstractLive {
                     }
                 }
                 if (resp.serverContent?.turnComplete) {
-                    console.log('complete');
+                    console.log('complete turn');
                     continue;
                 }
                 if (resp.serverContent?.interrupted) {
-                    console.log('interupted');
+                    console.log('interupted turn');
                     continue;
                 }
                 if (resp.toolCall) {

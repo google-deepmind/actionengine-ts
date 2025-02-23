@@ -56,15 +56,7 @@ export async function* mediaStreamToImageChunks(media: MediaStream, options: Par
     video.srcObject = media;
     video.autoplay = true;
     video.muted = true;
-
-    await new Promise<void>((resolve, reject) => {
-        video.addEventListener('loadeddata', () => {
-            resolve();
-        });
-        video.addEventListener('error', (e) => {
-            reject(new Error(`${e.error}`));
-        });
-    });
+    await video.play();
 
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth * opts.scale;

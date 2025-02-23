@@ -12,69 +12,77 @@ const DEFAULT_OUTPUT_SAMPLE_RATE = 24000;
 const DEFAULT_INPUT_SAMPLE_RATE = 16000;
 const DEFAULT_NUM_CHANNELS = 1;
 
-
-async function decodeAudioData(
+function decodeAudioData(
     chunk: Chunk,
-    ctx: AudioContext,
-    sampleRate: number,
-    numChannels: number,
-): Promise<AudioBuffer> {
+): Float32Array {
     const data = chunk.data;
     if (!data) {
         throw new Error('Chunk without data.');
     }
-
-    const bufferLength = new Int16Array(data.buffer).length;
-
-    const buffer = ctx.createBuffer(numChannels, bufferLength, sampleRate);
-
     const mimetype = chunk.metadata?.mimetype;
     if (!mimetype) {
         throw new Error('Chunk without mimetype.');
     }
-    if (mimetype.type === 'audio' && mimetype.subtype === 'ogg') {
-        // TODO(dougfritz): Audio ogg processing is not working properly.
-        const blob = new Blob([data.buffer as BlobPart], { type: 'audio/ogg' });
-        const oggBuffer = await ctx.decodeAudioData(await blob.arrayBuffer());
-        for (let i = 0; i < numChannels; i++) {
-            buffer.copyToChannel(oggBuffer.getChannelData(i), i);
-        }
-    } else if (mimetype.type === 'audio' && mimetype.subtype === 'pcm') {
+    if (mimetype.type === 'audio' && mimetype.subtype === 'pcm') {
         const dataInt16 = new Int16Array(data.buffer);
-        const l = dataInt16.length;
-        const dataFloat32 = new Float32Array(l);
-        for (let i = 0; i < l; i++) {
+        const len = dataInt16.length;
+        // convert to float32 -1 to 1.
+        const dataFloat32 = new Float32Array(len);
+        for (let i = 0; i < len; i++) {
             dataFloat32[i] = dataInt16[i] / 32768.0;
         }
-        // Extract interleaved channels
+        return dataFloat32;
+    } else {
+        throw new Error(`Unsupported mime type: ${JSON.stringify(mimetype)}`);
+    }
+}
+
+function createAudioBuffer(
+    ctx: AudioContext,
+    sampleRate: number,
+    numChannels: number,
+    data: Float32Array) {
+    const buffer = ctx.createBuffer(numChannels, data.length / numChannels, sampleRate);
+    if (numChannels == 0) {
+        buffer.copyToChannel(data, 0);
+    } else {
         for (let i = 0; i < numChannels; i++) {
-            const channel = dataFloat32.filter(
+            const channel = data.filter(
                 (_, index) => index % numChannels === i,
             );
             buffer.copyToChannel(channel, i);
         }
-    } else {
-        throw new Error(`Unsupported mime type: ${JSON.stringify(mimetype)}`);
     }
     return buffer;
 }
 
-
 /** Converts Audio Chunks to a Media Stream. */
-export function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStreamAudioDestinationNode {
+export function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStream {
     const sampleRate = DEFAULT_OUTPUT_SAMPLE_RATE;
     const numChannels = DEFAULT_NUM_CHANNELS;
 
-    const ctx = new AudioContext({ sampleRate });
-    const dest = ctx.createMediaStreamDestination();
+    const media = new MediaStream();
 
-    let source: AudioBufferSourceNode | null = null;
-    let playbackStartTime = 0;
-    let totalBufferedSeconds = 0;
+    function nextContext(currentCtx?: AudioContext): [AudioContext, MediaStreamAudioDestinationNode] {
+        if (currentCtx) {
+            void currentCtx.close();
+        }
+        const ctx = new AudioContext({ sampleRate });
+        const dest = ctx.createMediaStreamDestination();
+        media.getTracks().forEach((t) => {
+            media.removeTrack(t);
+        });
+        dest.stream.getTracks().forEach((t) => {
+            media.addTrack(t);
+        });
+        return [ctx, dest];
+    };
+
+    let [ctx, dest] = nextContext();
 
     async function read() {
         try {
-            let nextSource: AudioBufferSourceNode | null = null;
+            let nextStartTime = 0;
             for await (const chunk of chunks) {
                 if (chunk.metadata?.mimetype?.type !== 'audio') {
                     continue;
@@ -87,44 +95,20 @@ export function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStr
                     chunkSampleRate = sampleRate;
                 }
 
-                let buffer: AudioBuffer;
-
-                try {
-                    buffer = await decodeAudioData(
-                        chunk,
-                        ctx,
-                        chunkSampleRate,
-                        numChannels,
-                    );
-                } catch (e) {
-                    console.error('Error decoding audio data', e);
-                    continue;
+                // Has been a significant delay in next audio chunk.
+                if (ctx.currentTime > nextStartTime) {
+                    [ctx, dest] = nextContext(ctx);
+                    nextStartTime = ctx.currentTime;
                 }
 
-                nextSource = ctx.createBufferSource();
-                nextSource.buffer = buffer;
-                nextSource.connect(dest);
+                const audioData = decodeAudioData(chunk);
+                const audioBuffer = createAudioBuffer(ctx, sampleRate, numChannels, audioData);
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(dest);
 
-                let nextStartTime;
-                const PLAYBACK_BUFFER_SECONDS = 0.1;
-                if (!source) {
-                    playbackStartTime = ctx.currentTime + PLAYBACK_BUFFER_SECONDS;
-
-                    nextStartTime = playbackStartTime;
-                } else {
-                    nextStartTime = playbackStartTime + totalBufferedSeconds;
-
-                    if (nextStartTime < ctx.currentTime + PLAYBACK_BUFFER_SECONDS) {
-                        playbackStartTime = ctx.currentTime + PLAYBACK_BUFFER_SECONDS;
-                        nextStartTime = playbackStartTime;
-                        totalBufferedSeconds = 0;
-                    }
-                }
-                nextSource.start(nextStartTime);
-                totalBufferedSeconds += buffer.duration;
-
-                source = nextSource;
-                nextSource = null;
+                source.start(nextStartTime);
+                nextStartTime = nextStartTime + audioBuffer.duration;
             }
             await ctx.close();
         } finally {
@@ -134,7 +118,7 @@ export function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStr
         }
     }
     void read();
-    return dest;
+    return media;
 }
 
 /** Converts a Media Stream to audio chunks. */

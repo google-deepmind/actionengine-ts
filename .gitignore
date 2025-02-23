@@ -5,7 +5,6 @@
 
 package-lock.json
 
-**/.DS_Store
 .vscode/
 **/*.orig
 **/*.js
@@ -19,3 +18,5 @@ tsconfig.tsbuildinfo
 !lib/genai/*.js
 !lib/genai/*.d.ts
 !lib/genai/*.js.map
+
+**/.DS_Store

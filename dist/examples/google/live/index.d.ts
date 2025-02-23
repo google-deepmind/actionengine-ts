@@ -10,11 +10,11 @@ export declare class LiveDemo extends LitElement {
     accessor mic: boolean;
     accessor video: boolean;
     accessor screen: boolean;
-    accessor extra: boolean;
+    accessor files: boolean;
     accessor audioOut: HTMLAudioElement;
     accessor videoOut: HTMLVideoElement;
     accessor screenOut: HTMLVideoElement;
-    accessor extraOut: HTMLDivElement;
+    accessor filesOut: HTMLDivElement;
     private micStream?;
     private videoStream?;
     private screenStream?;
@@ -31,8 +31,8 @@ export declare class LiveDemo extends LitElement {
     private videoOff;
     private screenOn;
     private screenOff;
-    private extraOn;
-    private extraOff;
+    private filesOn;
+    private filesOff;
     protected render(): import("lit-html").TemplateResult<1>;
     static styles: import("lit").CSSResult;
 }

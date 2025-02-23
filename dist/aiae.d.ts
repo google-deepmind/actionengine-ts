@@ -285,7 +285,7 @@ declare function promptWithMetadata(prompt: Content, metadata: ChunkMetadata): C
  */
 
 /** Converts Audio Chunks to a Media Stream. */
-declare function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStreamAudioDestinationNode;
+declare function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStream;
 /** Converts a Media Stream to audio chunks. */
 declare function mediaStreamToAudioChunks(media: MediaStream): AsyncGenerator<AudioChunk>;
 

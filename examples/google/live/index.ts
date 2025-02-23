@@ -29,12 +29,12 @@ export class LiveDemo extends LitElement {
   @state() accessor mic = false;
   @state() accessor video = false;
   @state() accessor screen = false;
-  @state() accessor extra = false;
+  @state() accessor files = false;
 
   @query('.audio-out') accessor audioOut!: HTMLAudioElement;
   @query('.video-out') accessor videoOut!: HTMLVideoElement;
   @query('.screen-out') accessor screenOut!: HTMLVideoElement;
-  @query('.extra-out') accessor extraOut!: HTMLDivElement;
+  @query('.files-out') accessor filesOut!: HTMLDivElement;
 
   private micStream?: MediaStream;
   private videoStream?: MediaStream;
@@ -50,7 +50,7 @@ export class LiveDemo extends LitElement {
   override firstUpdated(props: PropertyValueMap<unknown>): void {
     super.firstUpdated(props);
     const media = aiae.content.audioChunksToMediaStream(this.outputs.audio);
-    this.audioOut.srcObject = media.stream;
+    this.audioOut.srcObject = media;
     // First interaction trigger playing audio.
     this.shadowRoot?.children[0].addEventListener('click', () => {
       void this.audioOut.play();
@@ -107,14 +107,14 @@ export class LiveDemo extends LitElement {
     this.screenStream?.getTracks().forEach(t => { t.stop(); });
   }
 
-  private extraOn() {
-    this.extra = true;
-    this.extraOut.style.display = 'flex';
+  private filesOn() {
+    this.files = true;
+    this.filesOut.style.display = 'flex';
   }
 
-  private extraOff() {
-    this.extra = false;
-    this.extraOut.style.display = 'none';
+  private filesOff() {
+    this.files = false;
+    this.filesOut.style.display = 'none';
   }
 
   protected override render() {
@@ -122,14 +122,14 @@ export class LiveDemo extends LitElement {
     const micCb = () => { if (this.mic) this.micOff(); else void this.micOn(); }
     const videoCb = () => { if (this.video) this.videoOff(); else void this.videoOn(); }
     const screenCb = () => { if (this.screen) this.screenOff(); else void this.screenOn(); }
-    const extraCb = () => { if (this.extra) this.extraOff(); else this.extraOn(); }
+    const filesCb = () => { if (this.files) this.filesOff(); else this.filesOn(); }
 
     return html`<div class="container">
       <div class="inputs">
         <audio class="audio-out"></audio>
         <video autoplay muted class="screen-out"></video>
         <video autoplay muted class="video-out"></video>
-        <div class="extra-out">lorem ipsum hello world</div>
+        <div class="files-out">lorem ipsum hello world</div>
       </div>
       <div class="input_controls">
           <md-icon-button @click="${micCb}" toggle>
@@ -144,9 +144,9 @@ export class LiveDemo extends LitElement {
             <md-icon>devices</md-icon>
             <md-icon slot="selected">devices_off</md-icon>
           </md-icon-button>
-          <md-icon-button @click="${extraCb}" toggle>
-            <md-icon>code</md-icon>
-            <md-icon slot="selected">code_off</md-icon>
+          <md-icon-button @click="${filesCb}" toggle>
+            <md-icon>attach_file</md-icon>
+            <md-icon slot="selected">attach_file_off</md-icon>
           </md-icon-button>
       </div>
     </div>`;
@@ -177,7 +177,7 @@ export class LiveDemo extends LitElement {
       width: 100%;
       height: 100%;
     }
-    .extra-out {
+    .files-out {
       justify-content: center;
       align-items: center;
     }
