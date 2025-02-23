@@ -622,36 +622,39 @@ function promptWithMetadata(prompt3, metadata) {
 var DEFAULT_OUTPUT_SAMPLE_RATE = 24e3;
 var DEFAULT_INPUT_SAMPLE_RATE = 16e3;
 var DEFAULT_NUM_CHANNELS = 1;
-function decodeAudioData(chunk) {
+async function decodeAudioData(chunk, ctx, sampleRate, numChannels) {
   const data = chunk.data;
   if (!data) {
     throw new Error("Chunk without data.");
   }
+  const buffer = ctx.createBuffer(numChannels, data.length / 2 / numChannels, sampleRate);
   const mimetype = chunk.metadata?.mimetype;
   if (!mimetype) {
     throw new Error("Chunk without mimetype.");
   }
-  if (mimetype.type === "audio" && mimetype.subtype === "pcm") {
+  if (mimetype.type === "audio" && mimetype.subtype === "ogg") {
+    const blob = new Blob([data.buffer], { type: "audio/ogg" });
+    const oggBuffer = await ctx.decodeAudioData(await blob.arrayBuffer());
+    for (let i = 0; i < numChannels; i++) {
+      buffer.copyToChannel(oggBuffer.getChannelData(i), i);
+    }
+  } else if (mimetype.type === "audio" && mimetype.subtype === "pcm") {
     const dataInt16 = new Int16Array(data.buffer);
-    const len = dataInt16.length;
-    const dataFloat32 = new Float32Array(len);
-    for (let i = 0; i < len; i++) {
+    const l = dataInt16.length;
+    const dataFloat32 = new Float32Array(l);
+    for (let i = 0; i < l; i++) {
       dataFloat32[i] = dataInt16[i] / 32768;
     }
-    return dataFloat32;
+    if (numChannels === 0) {
+      buffer.copyToChannel(dataFloat32, 0);
+    } else {
+      for (let i = 0; i < numChannels; i++) {
+        const channel = dataFloat32.filter((_, index) => index % numChannels === i);
+        buffer.copyToChannel(channel, i);
+      }
+    }
   } else {
     throw new Error(`Unsupported mime type: ${JSON.stringify(mimetype)}`);
-  }
-}
-function createAudioBuffer(ctx, sampleRate, numChannels, data) {
-  const buffer = ctx.createBuffer(numChannels, data.length / numChannels, sampleRate);
-  if (numChannels == 0) {
-    buffer.copyToChannel(data, 0);
-  } else {
-    for (let i = 0; i < numChannels; i++) {
-      const channel = data.filter((_, index) => index % numChannels === i);
-      buffer.copyToChannel(channel, i);
-    }
   }
   return buffer;
 }
@@ -691,8 +694,13 @@ function audioChunksToMediaStream(chunks) {
           [ctx, dest] = nextContext(ctx);
           nextStartTime = ctx.currentTime;
         }
-        const audioData = decodeAudioData(chunk);
-        const audioBuffer = createAudioBuffer(ctx, sampleRate, numChannels, audioData);
+        let audioBuffer;
+        try {
+          audioBuffer = await decodeAudioData(chunk, ctx, sampleRate, numChannels);
+        } catch (e) {
+          console.error("Error decoding audio data", e);
+          continue;
+        }
         const source = ctx.createBufferSource();
         source.buffer = audioBuffer;
         source.connect(dest);
