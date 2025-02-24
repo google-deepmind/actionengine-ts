@@ -72,15 +72,15 @@ export function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStr
         if (currentCtx) {
             void currentCtx.close();
         }
-        const ctx = new AudioContext({ sampleRate });
-        const dest = ctx.createMediaStreamDestination();
+        const nextCtx = new AudioContext({ sampleRate });
+        const nextDest = nextCtx.createMediaStreamDestination();
         media.getTracks().forEach((t) => {
             media.removeTrack(t);
         });
-        dest.stream.getTracks().forEach((t) => {
+        nextDest.stream.getTracks().forEach((t) => {
             media.addTrack(t);
         });
-        return [ctx, dest];
+        return [nextCtx, nextDest];
     };
 
     let [ctx, dest] = nextContext();
