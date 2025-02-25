@@ -666,15 +666,15 @@ function audioChunksToMediaStream(chunks) {
     if (currentCtx) {
       void currentCtx.close();
     }
-    const ctx2 = new AudioContext({ sampleRate });
-    const dest2 = ctx2.createMediaStreamDestination();
+    const nextCtx = new AudioContext({ sampleRate });
+    const nextDest = nextCtx.createMediaStreamDestination();
     media.getTracks().forEach((t) => {
       media.removeTrack(t);
     });
-    dest2.stream.getTracks().forEach((t) => {
+    nextDest.stream.getTracks().forEach((t) => {
       media.addTrack(t);
     });
-    return [ctx2, dest2];
+    return [nextCtx, nextDest];
   }
   ;
   let [ctx, dest] = nextContext();
