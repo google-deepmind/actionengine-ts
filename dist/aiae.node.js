@@ -1250,7 +1250,7 @@ var Live2 = class extends Live {
       }
     }
     async function writeOutputs2() {
-      live.onmessage = async (resp) => {
+      async function onmessage(resp) {
         if (resp.serverContent?.modelTurn) {
           const turn = resp.serverContent.modelTurn;
           if (turn.parts) {
@@ -1290,9 +1290,12 @@ var Live2 = class extends Live {
           console.log("toolCancellation");
           return;
         }
-      };
-      while (true) {
       }
+      live.onmessage = (resp) => {
+        void onmessage(resp);
+      };
+      await new Promise(() => {
+      });
     }
     void readInputs();
     void readContext();
