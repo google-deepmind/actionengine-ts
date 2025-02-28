@@ -1,5 +1,3 @@
-import { GoogleAuthOptions } from 'google-auth-library';
-
 export declare enum AdapterSize {
     ADAPTER_SIZE_UNSPECIFIED = "ADAPTER_SIZE_UNSPECIFIED",
     ADAPTER_SIZE_ONE = "ADAPTER_SIZE_ONE",
@@ -10,8 +8,11 @@ export declare enum AdapterSize {
 }
 
 /**
+
  * The ApiClient class is used to send requests to the Gemini API or Vertex AI
+
  * endpoints.
+
  */
 declare class ApiClient {
     private readonly clientOptions;
@@ -28,96 +29,136 @@ declare class ApiClient {
     getApiKey(): string | undefined;
     getWebsocketBaseUrl(): string;
     setBaseUrl(url: string): void;
-    get(path: string, requestObject: any, respType?: any, requestHttpOptions?: HttpOptions): Promise<any>;
-    post(path: string, requestObject: any, respType?: any, requestHttpOptions?: HttpOptions): Promise<any>;
-    patch(path: string, requestObject: any, respType?: any, requestHttpOptions?: HttpOptions): Promise<any>;
-    delete(path: string, requestObject: any, respType?: any, requestHttpOptions?: HttpOptions): Promise<any>;
-    private request;
+    request(request: HttpRequest): Promise<HttpResponse>;
     private patchHttpOptions;
-    postStream(path: string, requestJson: any, chunkType?: any, requestHttpOptions?: HttpOptions): Promise<any>;
+    requestStream(request: HttpRequest): Promise<any>;
     private includeExtraHttpOptionsToRequestInit;
     private unaryApiCall;
     private streamApiCall;
-    processStreamResponse(response: Response, chunkType: any): AsyncGenerator<any>;
+    processStreamResponse(response: Response): AsyncGenerator<any>;
     private apiCall;
-    private getDefaultHeaders;
+    getDefaultHeaders(): Record<string, string>;
     private getHeadersInternal;
 }
 
 /**
+
  * Options for initializing the ApiClient. The ApiClient uses the parameters
+
  * for authentication purposes as well as to infer if SDK should send the
+
  * request to Vertex AI or Gemini API.
+
  */
 declare interface ApiClientInitOptions {
     /**
+
      * The object used for adding authentication headers to API requests.
+
      */
     auth: Auth;
     /**
+
      * Optional. The Google Cloud project ID for Vertex AI users.
+
      * It is not the numeric project name.
+
      * If not provided, SDK will try to resolve it from runtime environment.
+
      */
     project?: string;
     /**
+
      * Optional. The Google Cloud project location for Vertex AI users.
+
      * If not provided, SDK will try to resolve it from runtime environment.
+
      */
     location?: string;
     /**
+
      * The API Key. This is required for Gemini API users.
+
      */
     apiKey?: string;
     /**
+
      * Optional. Set to true if you intend to call Vertex AI endpoints.
+
      * If unset, default SDK behavior is to call Gemini API.
+
      */
     vertexai?: boolean;
     /**
+
      * Optional. The API version for the endpoint.
+
      * If unset, SDK will choose a default api version.
+
      */
     apiVersion?: string;
     /**
+
      * Optional. A set of customizable configuration for HTTP requests.
+
      */
     httpOptions?: HttpOptions;
     /**
+
      * Optional. An extra string to append at the end of the User-Agent header.
+
      *
+
      * This can be used to e.g specify the runtime and its version.
+
      */
     userAgentExtra?: string;
 }
 
 /**
+
  * @license
+
  * Copyright 2024 Google LLC
+
  * SPDX-License-Identifier: Apache-2.0
+
  */
 /**
+
  * The Auth interface is used to authenticate with the API service.
+
  */
 declare interface Auth {
     /**
+
      * Sets the headers needed to authenticate with the API service.
+
      *
+
      * @param headers - The Headers object that will be updated with the authentication headers.
+
      */
     addAuthHeaders(headers: Headers): Promise<void>;
 }
 
 /**
+
  * @license
+
  * Copyright 2024 Google LLC
+
  * SPDX-License-Identifier: Apache-2.0
+
  */
 declare class BaseModule {
+    [key: string]: any;
 }
 
 /**
+
  * Base pager class for iterating through paginated results.
+
  */
 declare class BasePager<T> {
     private nameInternal;
@@ -129,42 +170,67 @@ declare class BasePager<T> {
     init(name: PagedItem, request: (config: any) => any, response: any, config: any): void;
     constructor(name: PagedItem, request: (config: any) => any, response: any, config: any);
     /**
+
      * Returns the current page, which is a list of items.
+
      *
+
      * The returned list of items is a subset of the entire list.
+
      */
     page(): T[];
     /**
+
      * Returns the type of paged item (for example, ``batch_jobs``).
+
      */
     name(): PagedItem;
     /**
+
      * Returns the length of the page fetched each time by this pager.
+
      *
+
      * The number of items in the page is less than or equal to the page length.
+
      */
     pageSize(): number;
     /**
+
      * Returns the configuration when making the API request for the next page.
+
      *
+
      * A configuration is a set of optional parameters and arguments that can be
+
      * used to customize the API request. For example, the ``pageToken`` parameter
+
      * contains the token to request the next page.
+
      */
     config(): any;
     /**
+
      * Returns the total number of items in the current page.
+
      */
     len(): number;
     /**
+
      * Returns the item at the given index.
+
      */
     getItem(index: number): T;
     /**
+
      * Initializes the next page from the response.
+
      *
+
      * This is an internal method that should be called by subclasses after
+
      * fetching the next page.
+
      */
     protected initNextPage(response: any): void;
 }
@@ -221,10 +287,117 @@ export declare interface CachedContentUsageMetadata {
 export declare class Caches extends BaseModule {
     private readonly apiClient;
     constructor(apiClient: ApiClient);
+    /**
+
+     * Lists cached content configurations.
+
+     *
+
+     * @example
+
+     * ```ts
+
+     * const cachedContents = await client.caches.list({config: {'pageSize': 2}});
+
+     * for (const cachedContent of cachedContents) {
+
+     *   console.log(cachedContent);
+
+     * }
+
+     * ```
+
+     */
     list: (params?: types.ListCachedContentsParameters) => Promise<Pager<types.CachedContent>>;
+    /**
+
+     * Creates cached content, this call will initialize the cached content in
+
+     * the data storage, and users need to pay for the cache data storage.
+
+     *
+
+     * @example
+
+     * ```ts
+
+     * const contents = ...; // Initialize the content to cache.
+
+     * const response = await client.caches.create({
+
+     *   model: 'gemini-1.5-flash',
+
+     *   config: {
+
+     *    'contents': contents,
+
+     *    'displayName': 'test cache',
+
+     *    'systemInstruction': 'What is the sum of the two pdfs?',
+
+     *    'ttl': '86400s',
+
+     *  }
+
+     * });
+
+     * ```
+
+     */
     create(params: types.CreateCachedContentParameters): Promise<types.CachedContent>;
+    /**
+
+     * Gets cached content configurations.
+
+     *
+
+     * @example
+
+     * ```ts
+
+     * await client.caches.get({name: 'gemini-1.5-flash'});
+
+     * ```
+
+     */
     get(params: types.GetCachedContentParameters): Promise<types.CachedContent>;
+    /**
+
+     * Deletes cached content.
+
+     *
+
+     * @example
+
+     * ```ts
+
+     * await client.caches.delete({name: 'gemini-1.5-flash'});
+
+     * ```
+
+     */
     delete(params: types.DeleteCachedContentParameters): Promise<types.DeleteCachedContentResponse>;
+    /**
+
+     * Updates cached content configurations.
+
+     *
+
+     * @example
+
+     * ```ts
+
+     * const response = await client.caches.update({
+
+     *   name: 'gemini-1.5-flash',
+
+     *   config: {'ttl': '7600s'}
+
+     * });
+
+     * ```
+
+     */
     update(params: types.UpdateCachedContentParameters): Promise<types.CachedContent>;
     private listInternal;
 }
@@ -232,15 +405,19 @@ export declare class Caches extends BaseModule {
 /** A response candidate generated from the model. */
 export declare interface Candidate {
     /** Contains the multi-part content of the response.
+
      */
     content?: Content;
     /** Source attribution of the generated content.
+
      */
     citationMetadata?: CitationMetadata;
     /** Describes the reason the model stopped generating tokens.
+
      */
     finishMessage?: string;
     /** Number of tokens for this candidate.
+
      */
     tokenCount?: number;
     /** Output only. Average log probability score of the candidate. */
@@ -258,8 +435,11 @@ export declare interface Candidate {
 }
 
 /**
+
  * Chat session that enables sending messages and stores the chat history so
+
  * far.
+
  */
 export declare class Chat {
     private readonly apiClient;
@@ -270,43 +450,70 @@ export declare class Chat {
     private sendPromise;
     constructor(apiClient: ApiClient, modelsModule: Models, model: string, config: types.GenerateContentConfig, curatedHistory: types.Content[]);
     /**
+
      * Sends a message to the model and returns the response.
+
      *
+
      * This method will wait for the previous message to be processed before
+
      * sending the next message.
+
      *
+
      * @see {@link Chat#sendMessageStream} for streaming method.
+
      * @param message The message to send.
+
      * @returns The model's response.
+
      */
     sendMessage(message: types.PartListUnion): Promise<types.GenerateContentResponse>;
     /**
+
      * Sends a message to the model and returns the response in chunks.
+
      *
+
      * This method will wait for the previous message to be processed before
+
      * sending the next message.
+
      *
+
      * @see {@link Chat#sendMessage} for non-streaming method.
+
      * @param message The message to send.
+
      * @returns The model's response.
+
      */
     sendMessageStream(message: types.PartListUnion): Promise<AsyncGenerator<types.GenerateContentResponse>>;
 }
 
 /**
+
  * A utility class to create a chat session.
+
  */
 export declare class Chats {
     private readonly modelsModule;
     private readonly apiClient;
     constructor(modelsModule: Models, apiClient: ApiClient);
     /**
+
      * Creates a new chat session.
+
      *
+
      * @param model The model to use for the chat.
+
      * @param config The configuration to use for the generate content request.
+
      * @param history The initial history to use for the chat.
+
      * @returns A new chat session.
+
      */
     create(model: string, config?: types.GenerateContentConfig, history?: types.Content[]): Chat;
 }
@@ -330,112 +537,13 @@ export declare interface Citation {
 /** Citation information when the model quotes another source. */
 export declare interface CitationMetadata {
     /** Contains citation information when the model directly quotes, at
+
      length, from another source. Can include traditional websites and code
+
      repositories.
+
      */
     citations?: Citation[];
-}
-
-/**
- Client for making requests in a Node-compatible environment.
-
- Use this client to make a request to the Gemini Developer API or Vertex AI
- API and then wait for the response.
-
- To initialize the client, provide the required arguments either directly
- or by using environment variables. Gemini API users can provide API key by
- providing input argument `apiKey="your-api-key"` or by defining
- `GOOGLE_API_KEY="your-api-key"` as an environment variable.
-
- Vertex AI API users can provide inputs argument as `vertexai=true,
- project="your-project-id", location="us-central1"` or by defining
- `GOOGLE_GENAI_USE_VERTEXAI=false`, `GOOGLE_CLOUD_PROJECT` and
- `GOOGLE_CLOUD_LOCATION` environment variables.
-
- Attributes:
- options: See ClientInitOptions for usage.
-
- Usage for the Gemini Developer API:
-
- ```ts
- import * as genai from ("@google/genai");
-
- const client = genai.Client({apiKey: 'my-api-key'})
- ```
-
- Usage for the Vertex AI API:
-
- ```ts
- import * as genai from ("@google/genai");
-
- const client = genai.Client({
- vertexai: true, project: 'my-project-id', location: 'us-central1'
- })
- ```
- */
-export declare class Client {
-    protected readonly apiClient: ApiClient;
-    private readonly apiKey?;
-    readonly vertexai?: boolean;
-    private readonly googleAuthOptions?;
-    private readonly project?;
-    private readonly location?;
-    private readonly apiVersion?;
-    readonly models: Models;
-    readonly live: Live;
-    readonly tunings: Tunings;
-    readonly chats: Chats;
-    readonly caches: Caches;
-    readonly files: Files;
-    constructor(options: ClientInitOptions);
-}
-
-/**
- * Options for initializing the Client. The Client uses the parameters
- * for authentication purposes as well as to infer if SDK should send the
- * request to Vertex AI or Gemini API.
- */
-export declare interface ClientInitOptions {
-    /**
-     * The object used for adding authentication headers to API requests.
-     */
-    auth?: Auth;
-    /**
-     * Optional. The Google Cloud project ID for Vertex AI users.
-     * It is not the numeric project name.
-     * If not provided, SDK will try to resolve it from runtime environment.
-     */
-    project?: string;
-    /**
-     * Optional. The Google Cloud project location for Vertex AI users.
-     * If not provided, SDK will try to resolve it from runtime environment.
-     */
-    location?: string;
-    /**
-     * The API Key. This is required for Gemini API users.
-     */
-    apiKey?: string;
-    /**
-     * Optional. Set to true if you intend to call Vertex AI endpoints.
-     * If unset, default SDK behavior is to call Gemini API.
-     */
-    vertexai?: boolean;
-    /**
-     * Optional. The API version for the endpoint.
-     * If unset, SDK will choose a default api version.
-     */
-    apiVersion?: string;
-    /**
-     * Optional. These are the authentication options provided by google-auth-library for Vertex AI users.
-     * Complete list of authentication options are documented in the
-     * GoogleAuthOptions interface:
-     * https://github.com/googleapis/google-auth-library-nodejs/blob/main/src/auth/googleauth.ts.
-     */
-    googleAuthOptions?: GoogleAuthOptions;
-    /**
-     * Optional. A set of customizable configuration for HTTP requests.
-     */
-    httpOptions?: HttpOptions;
 }
 
 /** Result of executing the [ExecutableCode]. Always follows a `part` containing the [ExecutableCode]. */
@@ -455,11 +563,13 @@ export declare interface ComputeTokensConfig {
 /** Parameters for computing tokens. */
 export declare interface ComputeTokensParameters {
     /** ID of the model to use. For a list of models, see `Google models
+
      <https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models>`_. */
-    model?: string;
+    model: string;
     /** Input content. */
-    contents?: ContentListUnion;
+    contents: ContentListUnion;
     /** Optional parameters for the request.
+
      */
     config?: ComputeTokensConfig;
 }
@@ -473,10 +583,13 @@ export declare class ComputeTokensResponse {
 /** Contains the multi-part content of a message. */
 export declare interface Content {
     /** List of parts that constitute a single message. Each part may have
+
      a different IANA MIME type. */
     parts?: Part[];
     /** Optional. The producer of the content. Must be either 'user' or
+
      'model'. Useful to set for multi-turn conversations, otherwise can be
+
      left blank or unset. If role is not specified, SDK will determine the role. */
     role?: string;
 }
@@ -484,10 +597,13 @@ export declare interface Content {
 /** The embedding generated from an input content. */
 export declare interface ContentEmbedding {
     /** A list of floats representing an embedding.
+
      */
     values?: number[];
     /** Vertex API only. Statistics of the input text associated with this
+
      embedding.
+
      */
     statistics?: ContentEmbeddingStatistics;
 }
@@ -495,10 +611,13 @@ export declare interface ContentEmbedding {
 /** Statistics of the input text associated with the result of content embedding. */
 export declare interface ContentEmbeddingStatistics {
     /** Vertex API only. If the input text was truncated due to having
+
      a length longer than the allowed maximum input.
+
      */
     truncated?: boolean;
     /** Vertex API only. Number of tokens of the input text.
+
      */
     tokenCount?: number;
 }
@@ -506,10 +625,10 @@ export declare interface ContentEmbeddingStatistics {
 export declare type ContentListUnion = ContentUnion[] | ContentUnion;
 
 /** @internal */
-export declare function contentToMldev(apiClient: ApiClient, fromObject: types.Content, parentObject?: Record<string, any>): Record<string, any>;
+export declare function contentToMldev(apiClient: ApiClient, fromObject: types.Content, parentObject?: Record<string, unknown>): Record<string, unknown>;
 
 /** @internal */
-export declare function contentToVertex(apiClient: ApiClient, fromObject: types.Content, parentObject?: Record<string, any>): Record<string, any>;
+export declare function contentToVertex(apiClient: ApiClient, fromObject: types.Content, parentObject?: Record<string, unknown>): Record<string, unknown>;
 
 export declare type ContentUnion = Content | PartUnion[] | PartUnion;
 
@@ -518,27 +637,38 @@ export declare interface ControlReferenceConfig {
     /** The type of control reference image to use. */
     controlType?: ControlReferenceType;
     /** Defaults to False. When set to True, the control image will be
+
      computed by the model based on the control type. When set to False,
+
      the control image must be provided by the user. */
     enableControlImageComputation?: boolean;
 }
 
 /** A control reference image.
 
+
+
  The image of the control reference image is either a control image provided
+
  by the user, or a regular image which the backend will use to generate a
+
  control image of. In the case of the latter, the
+
  enable_control_image_computation field in the config should be set to True.
 
+
+
  A control image is an image that represents a sketch image of areas for the
+
  model to fill in based on the prompt.
+
  */
 export declare interface ControlReferenceImage {
     /** The reference image for the editing operation. */
     referenceImage?: Image_2;
     /** The id of the reference image. */
     referenceId?: number;
-    /** The type of the reference image. */
+    /** The type of the reference image. Only set by the SDK. */
     referenceType?: string;
     /** Configuration for the control reference image. */
     config?: ControlReferenceConfig;
@@ -556,14 +686,19 @@ export declare interface CountTokensConfig {
     /** Used to override HTTP request options. */
     httpOptions?: HttpOptions;
     /** Instructions for the model to steer it toward better performance.
+
      */
     systemInstruction?: ContentUnion;
     /** Code that enables the system to interact with external systems to
+
      perform an action outside of the knowledge and scope of the model.
+
      */
     tools?: Tool[];
     /** Configuration that the model uses to generate the response. Not
+
      supported by the Gemini Developer API.
+
      */
     generationConfig?: GenerationConfig;
 }
@@ -571,10 +706,11 @@ export declare interface CountTokensConfig {
 /** Parameters for counting tokens. */
 export declare interface CountTokensParameters {
     /** ID of the model to use. For a list of models, see `Google models
+
      <https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models>`_. */
-    model?: string;
+    model: string;
     /** Input content. */
-    contents?: ContentListUnion;
+    contents: ContentListUnion;
     /** Configuration for counting tokens. */
     config?: CountTokensConfig;
 }
@@ -596,18 +732,23 @@ export declare interface CreateCachedContentConfig {
     /** Timestamp of when this resource is considered expired. */
     expireTime?: string;
     /** The user-generated meaningful display name of the cached content.
+
      */
     displayName?: string;
     /** The content to cache.
+
      */
     contents?: ContentListUnion;
     /** Developer set system instruction.
+
      */
     systemInstruction?: ContentUnion;
     /** A list of `Tools` the model may use to generate the next response.
+
      */
     tools?: Tool[];
     /** Configuration for the tools to use. This config is shared for all tools.
+
      */
     toolConfig?: ToolConfig;
 }
@@ -615,51 +756,144 @@ export declare interface CreateCachedContentConfig {
 /** Parameters for caches.create method. */
 export declare interface CreateCachedContentParameters {
     /** ID of the model to use. Example: gemini-1.5-flash */
-    model?: string;
+    model: string;
     /** Configuration that contains optional parameters.
+
      */
     config?: CreateCachedContentConfig;
 }
 
+/** Used to override the default configuration. */
+export declare interface CreateFileConfig {
+    /** Used to override HTTP request options. */
+    httpOptions?: HttpOptions;
+}
+
+/** Generates the parameters for the private _create method. */
+export declare interface CreateFileParameters {
+    /** The file to be uploaded.
+
+     mime_type: (Required) The MIME type of the file. Must be provided.
+
+     name: (Optional) The name of the file in the destination (e.g.
+
+     'files/sample-image').
+
+     display_name: (Optional) The display name of the file.
+
+     */
+    file: File_2;
+    /** Used to override the default configuration. */
+    config?: CreateFileConfig;
+}
+
+/** Response for the create file method. */
+export declare class CreateFileResponse {
+    /** Used to retain the full HTTP response. */
+    sdkHttpResponse?: HttpResponse;
+}
+
 /**
+
+ * create a Content object with a model role from a PartListUnion or string.
+
+ */
+export declare function createModelContent(partOrString: PartListUnion | string): Content;
+
+/**
+
  * createPartFromBase64 creates a Part object from a base64 string.
+
  */
 export declare function createPartFromBase64(data: string, mimeType: string): Part;
 
 /**
+
  * createPartFromCodeExecutionResult creates a Part object from outcome and output of a code execution result.
+
  */
 export declare function createPartFromCodeExecutionResult(outcome: Outcome, output: string): Part;
 
 /**
+
  * createPartFromExecutableCode creates a Part object from code and language of an executable code.
+
  */
 export declare function createPartFromExecutableCode(code: string, language: Language): Part;
 
 /**
+
  * createPartFromFunctionCall creates a Part object from a function call.
+
  */
 export declare function createPartFromFunctionCall(name: string, args: Record<string, any>): Part;
 
 /**
+
  * createPartFromFunctionResponse creates a Part object from a function response.
+
  */
 export declare function createPartFromFunctionResponse(id: string, name: string, response: Record<string, any>): Part;
 
 /**
+
  * createPartFromText creates a Part object from a text.
+
  */
 export declare function createPartFromText(text: string): Part;
 
 /**
+
  * createPartFromUri creates a Part object from a URI.
+
  */
 export declare function createPartFromUri(uri: string, mimeType: string): Part;
 
 /**
+
  * createPartFromVideoMetadata creates a Part object from start and end offsets of a video metadata.
+
  */
 export declare function createPartFromVideoMetadata(startOffset: string, endOffset: string): Part;
+
+/** Supervised fine-tuning job creation request - optional fields. */
+export declare interface CreateTuningJobConfig {
+    /** Used to override HTTP request options. */
+    httpOptions?: HttpOptions;
+    /** Cloud Storage path to file containing training dataset for tuning. The dataset must be formatted as a JSONL file. */
+    validationDataset?: TuningValidationDataset;
+    /** The display name of the tuned Model. The name can be up to 128 characters long and can consist of any UTF-8 characters. */
+    tunedModelDisplayName?: string;
+    /** The description of the TuningJob */
+    description?: string;
+    /** Number of complete passes the model makes over the entire training dataset during training. */
+    epochCount?: number;
+    /** Multiplier for adjusting the default learning rate. */
+    learningRateMultiplier?: number;
+    /** Adapter size for tuning. */
+    adapterSize?: AdapterSize;
+    /** The batch size hyperparameter for tuning. If not set, a default of 4 or 16 will be used based on the number of training examples. */
+    batchSize?: number;
+    /** The learning rate hyperparameter for tuning. If not set, a default of 0.001 or 0.0002 will be calculated based on the number of training examples. */
+    learningRate?: number;
+}
+
+/** Supervised fine-tuning job creation parameters - optional fields. */
+export declare interface CreateTuningJobParameters {
+    /** The base model that is being tuned, e.g., "gemini-1.0-pro-002". */
+    baseModel: string;
+    /** Cloud Storage path to file containing training dataset for tuning. The dataset must be formatted as a JSONL file. */
+    trainingDataset: TuningDataset;
+    /** Configuration for the tuning job. */
+    config?: CreateTuningJobConfig;
+}
+
+/**
+
+ * create a Content object with a user role from a PartListUnion or string.
+
+ */
+export declare function createUserContent(partOrString: PartListUnion | string): Content;
 
 /** Distribution computed over a tuning dataset. */
 export declare interface DatasetDistribution {
@@ -720,9 +954,11 @@ export declare interface DeleteCachedContentConfig {
 /** Parameters for caches.delete method. */
 export declare interface DeleteCachedContentParameters {
     /** The server-generated resource name of the cached content.
+
      */
-    name?: string;
+    name: string;
     /** Optional parameters for the request.
+
      */
     config?: DeleteCachedContentConfig;
 }
@@ -784,29 +1020,39 @@ export declare enum DynamicRetrievalConfigMode {
     MODE_DYNAMIC = "MODE_DYNAMIC"
 }
 
-/** Optional parameters for the embed_content method. */
 export declare interface EmbedContentConfig {
     /** Used to override HTTP request options. */
     httpOptions?: HttpOptions;
     /** Type of task for which the embedding will be used.
+
      */
     taskType?: string;
     /** Title for the text. Only applicable when TaskType is
+
      `RETRIEVAL_DOCUMENT`.
+
      */
     title?: string;
     /** Reduced dimension for the output embedding. If set,
+
      excessive values in the output embedding are truncated from the end.
+
      Supported by newer models since 2024 only. You cannot set this value if
+
      using the earlier model (`models/embedding-001`).
+
      */
     outputDimensionality?: number;
     /** Vertex API only. The MIME type of the input.
+
      */
     mimeType?: string;
     /** Vertex API only. Whether to silently truncate inputs longer than
+
      the max sequence length. If this option is set to false, oversized inputs
+
      will lead to an INVALID_ARGUMENT error, similar to other text APIs.
+
      */
     autoTruncate?: boolean;
 }
@@ -814,7 +1060,9 @@ export declare interface EmbedContentConfig {
 /** Request-level metadata for the Vertex Embed Content API. */
 export declare interface EmbedContentMetadata {
     /** Vertex API only. The total number of billable characters included
+
      in the request.
+
      */
     billableCharacterCount?: number;
 }
@@ -822,12 +1070,15 @@ export declare interface EmbedContentMetadata {
 /** Parameters for the embed_content method. */
 export declare interface EmbedContentParameters {
     /** ID of the model to use. For a list of models, see `Google models
+
      <https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models>`_. */
-    model?: string;
+    model: string;
     /** The content to embed. Only the `parts.text` fields will be counted.
+
      */
-    contents?: ContentListUnion;
+    contents: ContentListUnion;
     /** Configuration that contains optional parameters.
+
      */
     config?: EmbedContentConfig;
 }
@@ -835,10 +1086,13 @@ export declare interface EmbedContentParameters {
 /** Response for the embed_content method. */
 export declare class EmbedContentResponse {
     /** The embeddings for each request, in the same order as provided in
+
      the batch request.
+
      */
     embeddings?: ContentEmbedding[];
     /** Vertex API only. Metadata about the request.
+
      */
     metadata?: EmbedContentMetadata;
 }
@@ -902,22 +1156,37 @@ declare class Files extends BaseModule {
     private readonly apiClient;
     constructor(apiClient: ApiClient);
     /**
+
      * This method lists all files from the service.
+
      *
+
      * @param params - The parameters for the list request
+
      * @returns The paginated results of the list of files
+
      *
+
      * @example
+
      * The following code prints the names of all files from the service, the
+
      * szie of each page is 2.
+
      *
+
      * const listResponse = await client.files.list({config: {'pageSize': 2}});
+
      * for await (const file of listResponse) {
+
      *   console.log(file.name());
+
      * }
+
      */
     list: (params?: types.ListFilesParameters) => Promise<Pager<types.File>>;
     private listInternal;
+    private createInternal;
     get(params: types.GetFileParameters): Promise<types.File>;
 }
 
@@ -960,6 +1229,7 @@ export declare enum FinishReason {
 /** A function call. */
 export declare interface FunctionCall {
     /** The unique id of the function call. If populated, the client to execute the
+
      `function_call` and return the response with the matching `id`. */
     id?: string;
     /** Optional. Required. The function parameters and values in JSON object format. See [FunctionDeclaration.parameters] for parameter details. */
@@ -985,11 +1255,16 @@ export declare enum FunctionCallingConfigMode {
 
 /** Defines a function that the model can generate JSON inputs for.
 
+
+
  The inputs are based on `OpenAPI 3.0 specifications
+
  <https://spec.openapis.org/oas/v3.0.3>`_.
+
  */
 export declare interface FunctionDeclaration {
     /** Describes the output from the function in the OpenAPI JSON Schema
+
      Object format. */
     response?: Schema;
     /** Optional. Description and purpose of the function. Model uses it to decide how and whether to call the function. */
@@ -1003,6 +1278,7 @@ export declare interface FunctionDeclaration {
 /** A function response. */
 export declare class FunctionResponse {
     /** The id of the function call this response is for. Populated by the client
+
      to match the corresponding function call `id`. */
     id?: string;
     /** Required. The name of the function to call. Matches [FunctionDeclaration.name] and [FunctionCall.name]. */
@@ -1013,109 +1289,162 @@ export declare class FunctionResponse {
 
 /** Optional model configuration parameters.
 
+
+
  For more information, see `Content generation parameters
+
  <https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/content-generation-parameters>`_.
+
  */
 export declare interface GenerateContentConfig {
     /** Used to override HTTP request options. */
     httpOptions?: HttpOptions;
     /** Instructions for the model to steer it toward better performance.
+
      For example, "Answer as concisely as possible" or "Don't use technical
+
      terms in your response".
+
      */
     systemInstruction?: ContentUnion;
     /** Value that controls the degree of randomness in token selection.
+
      Lower temperatures are good for prompts that require a less open-ended or
+
      creative response, while higher temperatures can lead to more diverse or
+
      creative results.
+
      */
     temperature?: number;
     /** Tokens are selected from the most to least probable until the sum
+
      of their probabilities equals this value. Use a lower value for less
+
      random responses and a higher value for more random responses.
+
      */
     topP?: number;
     /** For each token selection step, the ``top_k`` tokens with the
+
      highest probabilities are sampled. Then tokens are further filtered based
+
      on ``top_p`` with the final token selected using temperature sampling. Use
+
      a lower number for less random responses and a higher number for more
+
      random responses.
+
      */
     topK?: number;
     /** Number of response variations to return.
+
      */
     candidateCount?: number;
     /** Maximum number of tokens that can be generated in the response.
+
      */
     maxOutputTokens?: number;
     /** List of strings that tells the model to stop generating text if one
+
      of the strings is encountered in the response.
+
      */
     stopSequences?: string[];
     /** Whether to return the log probabilities of the tokens that were
+
      chosen by the model at each step.
+
      */
     responseLogprobs?: boolean;
     /** Number of top candidate tokens to return the log probabilities for
+
      at each generation step.
+
      */
     logprobs?: number;
     /** Positive values penalize tokens that already appear in the
+
      generated text, increasing the probability of generating more diverse
+
      content.
+
      */
     presencePenalty?: number;
     /** Positive values penalize tokens that repeatedly appear in the
+
      generated text, increasing the probability of generating more diverse
+
      content.
+
      */
     frequencyPenalty?: number;
     /** When ``seed`` is fixed to a specific number, the model makes a best
+
      effort to provide the same response for repeated requests. By default, a
+
      random number is used.
+
      */
     seed?: number;
     /** Output response media type of the generated candidate text.
+
      */
     responseMimeType?: string;
     /** Schema that the generated candidate text must adhere to.
+
      */
     responseSchema?: SchemaUnion;
     /** Configuration for model router requests.
+
      */
     routingConfig?: GenerationConfigRoutingConfig;
     /** Safety settings in the request to block unsafe content in the
+
      response.
+
      */
     safetySettings?: SafetySetting[];
     /** Code that enables the system to interact with external systems to
+
      perform an action outside of the knowledge and scope of the model.
+
      */
     tools?: ToolListUnion;
     /** Associates model output to a specific function call.
+
      */
     toolConfig?: ToolConfig;
     /** Labels with user-defined metadata to break down billed charges. */
     labels?: Record<string, string>;
     /** Resource name of a context cache that can be used in subsequent
+
      requests.
+
      */
     cachedContent?: string;
     /** The requested modalities of the response. Represents the set of
+
      modalities that the model can return.
+
      */
     responseModalities?: string[];
     /** If specified, the media resolution specified will be used.
+
      */
     mediaResolution?: MediaResolution;
     /** The speech generation configuration.
+
      */
     speechConfig?: SpeechConfigUnion;
     /** If enabled, audio timestamp will be included in the request to the
+
      model.
+
      */
     audioTimestamp?: boolean;
     /** The thinking features configuration.
+
      */
     thinkingConfig?: ThinkingConfig;
 }
@@ -1123,12 +1452,15 @@ export declare interface GenerateContentConfig {
 /** Config for models.generate_content parameters. */
 export declare interface GenerateContentParameters {
     /** ID of the model to use. For a list of models, see `Google models
+
      <https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models>`_. */
-    model?: string;
+    model: string;
     /** Content of the request.
+
      */
-    contents?: ContentListUnion;
+    contents: ContentListUnion;
     /** Configuration that contains optional model parameters.
+
      */
     config?: GenerateContentConfig;
 }
@@ -1136,8 +1468,17 @@ export declare interface GenerateContentParameters {
 /** Response message for PredictionService.GenerateContent. */
 export declare class GenerateContentResponse {
     /** Response variations returned by the model.
+
      */
     candidates?: Candidate[];
+    /** Timestamp when the request is made to the server.
+
+     */
+    createTime?: string;
+    /** Identifier for each response.
+
+     */
+    responseId?: string;
     /** Output only. The model version used to generate the response. */
     modelVersion?: string;
     /** Output only. Content filter results for a prompt sent in the request. Note: Sent only in the first stream chunk. Only happens when no candidates were generated due to content violations. */
@@ -1173,14 +1514,19 @@ export declare class GenerateContentResponseUsageMetadata {
 /** An output image. */
 export declare interface GeneratedImage {
     /** The output image data.
+
      */
     image?: Image_2;
     /** Responsible AI filter reason if the image is filtered out of the
+
      response.
+
      */
     raiFilteredReason?: string;
     /** The rewritten prompt used for the image generation if the prompt
+
      enhancer is enabled.
+
      */
     enhancedPrompt?: string;
 }
@@ -1190,53 +1536,73 @@ export declare interface GenerateImagesConfig {
     /** Used to override HTTP request options. */
     httpOptions?: HttpOptions;
     /** Cloud Storage URI used to store the generated images.
+
      */
     outputGcsUri?: string;
     /** Description of what to discourage in the generated images.
+
      */
     negativePrompt?: string;
     /** Number of images to generate.
+
      */
     numberOfImages?: number;
     /** Controls how much the model adheres to the text prompt. Large
+
      values increase output and prompt alignment, but may compromise image
+
      quality.
+
      */
     guidanceScale?: number;
     /** Random seed for image generation. This is not available when
+
      ``add_watermark`` is set to true.
+
      */
     seed?: number;
     /** Filter level for safety filtering.
+
      */
     safetyFilterLevel?: SafetyFilterLevel;
     /** Allows generation of people by the model.
+
      */
     personGeneration?: PersonGeneration;
     /** Whether to report the safety scores of each image in the response.
+
      */
     includeSafetyAttributes?: boolean;
     /** Whether to include the Responsible AI filter reason if the image
+
      is filtered out of the response.
+
      */
     includeRaiReason?: boolean;
     /** Language of the text in the prompt.
+
      */
     language?: ImagePromptLanguage;
     /** MIME type of the generated image.
+
      */
     outputMimeType?: string;
     /** Compression quality of the generated image (for ``image/jpeg``
+
      only).
+
      */
     outputCompressionQuality?: number;
     /** Whether to add a watermark to the generated images.
+
      */
     addWatermark?: boolean;
     /** Aspect ratio of the generated images.
+
      */
     aspectRatio?: string;
     /** Whether to use the prompt rewriting logic.
+
      */
     enhancePrompt?: boolean;
 }
@@ -1244,12 +1610,15 @@ export declare interface GenerateImagesConfig {
 /** The parameters for generating images. */
 export declare interface GenerateImagesParameters {
     /** ID of the model to use. For a list of models, see `Google models
+
      <https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models>`_. */
-    model?: string;
+    model: string;
     /** Text prompt that typically describes the images to output.
+
      */
-    prompt?: string;
+    prompt: string;
     /** Configuration for generating images.
+
      */
     config?: GenerateImagesConfig;
 }
@@ -1257,6 +1626,7 @@ export declare interface GenerateImagesParameters {
 /** The output images response. */
 export declare class GenerateImagesResponse {
     /** List of generated images.
+
      */
     generatedImages?: GeneratedImage[];
 }
@@ -1324,9 +1694,11 @@ export declare interface GetCachedContentConfig {
 /** Parameters for caches.get method. */
 export declare interface GetCachedContentParameters {
     /** The server-generated resource name of the cached content.
+
      */
-    name?: string;
+    name: string;
     /** Optional parameters for the request.
+
      */
     config?: GetCachedContentConfig;
 }
@@ -1340,7 +1712,7 @@ export declare interface GetFileConfig {
 /** Generates the parameters for the get method. */
 export declare interface GetFileParameters {
     /** The name identifier for the file to retrieve. */
-    name?: string;
+    name: string;
     /** Used to override the default configuration. */
     config?: GetFileConfig;
 }
@@ -1353,7 +1725,7 @@ export declare interface GetTuningJobConfig {
 
 /** Parameters for the get method. */
 export declare interface GetTuningJobParameters {
-    name?: string;
+    name: string;
     /** Optional parameters for the request. */
     config?: GetTuningJobConfig;
 }
@@ -1492,14 +1864,78 @@ export declare interface HttpOptions {
     timeout?: number;
 }
 
+/**
+
+ * Represents the necessary information to send a request to an API endpoint.
+
+ * This interface defines the structure for constructing and executing HTTP
+
+ * requests.
+
+ */
+declare interface HttpRequest {
+    /**
+
+     * URL path from the modules, this path is appended to the base API URL to
+
+     * form the complete request URL.
+
+     */
+    path: string;
+    /**
+
+     * Optional query parameters to be appended to the request URL.
+
+     */
+    queryParams?: Record<string, string>;
+    /**
+
+     * Optional request body in json string format, GET request doesn't need a
+
+     * request body.
+
+     */
+    body?: string;
+    /**
+
+     * The HTTP method to be used for the request.
+
+     */
+    httpMethod: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+    /**
+
+     * Optional set of customizable configuration for HTTP requests.
+
+     */
+    httpOptions?: HttpOptions;
+}
+
+/** A wrapper class for the http response. */
+export declare class HttpResponse {
+    /** Used to retain the processed HTTP headers in the response. */
+    headers?: Record<string, string>;
+    /**
+
+     * The original http response.
+
+     */
+    responseInternal: Response;
+    constructor(response: Response);
+    json(): Promise<any>;
+}
+
 /** An image. */
 declare interface Image_2 {
     /** The Cloud Storage URI of the image. ``Image`` can contain a value
+
      for this field or the ``image_bytes`` field but not both.
+
      */
     gcsUri?: string;
     /** The image bytes data. ``Image`` can contain a value for this field
+
      or the ``gcs_uri`` field but not both.
+
      */
     imageBytes?: string;
     /** The MIME type of the image. */
@@ -1546,6 +1982,7 @@ export declare interface ListCachedContentsConfig {
 /** Parameters for caches.list method. */
 export declare interface ListCachedContentsParameters {
     /** Configuration that contains optional parameters.
+
      */
     config?: ListCachedContentsConfig;
 }
@@ -1553,6 +1990,7 @@ export declare interface ListCachedContentsParameters {
 export declare class ListCachedContentsResponse {
     nextPageToken?: string;
     /** List of cached contents.
+
      */
     cachedContents?: CachedContent[];
 }
@@ -1602,10 +2040,15 @@ export declare class ListTuningJobsResponse {
 }
 
 /**
+
  Live class encapsulates the configuration for live interaction with the
+
  Generative Language API. It embeds ApiClient for general API settings.
 
+
+
  @experimental
+
  */
 export declare class Live {
     private readonly apiClient;
@@ -1613,38 +2056,63 @@ export declare class Live {
     private readonly webSocketFactory;
     constructor(apiClient: ApiClient, auth: Auth, webSocketFactory: WebSocketFactory);
     /**
+
      Establishes a connection to the specified model with the given
+
      configuration. It returns a Session object representing the connection.
+
+
 
      @experimental
 
+
+
      @param model - Model to use for the Live session.
+
      @param config - Configuration parameters for the Live session.
+
      @param callbacks - Optional callbacks for websocket events. If not
+
      provided, default no-op callbacks will be used. Generally, prefer to
+
      provide explicit callbacks to allow for proper handling of websocket
+
      events (e.g. connection errors).
+
      */
-    connect(model: string, config: types.LiveConnectConfig, callbacks?: WebSocketCallbacks): Promise<Session>;
+    connect(params: types.LiveConnectParameters, callbacks?: WebSocketCallbacks): Promise<Session>;
 }
 
 /** Incremental update of the current conversation delivered from the client.
 
+
+
  All the content here will unconditionally be appended to the conversation
+
  history and used as part of the prompt to the model to generate content.
 
+
+
  A message here will interrupt any current model generation.
+
  */
 export declare interface LiveClientContent {
     /** The content appended to the current conversation with the model.
 
+
+
      For single-turn queries, this is a single instance. For multi-turn
+
      queries, this is a repeated field that contains conversation history and
+
      latest request.
+
      */
     turns?: Content[];
     /** If true, indicates that the server content generation should start with
+
      the currently accumulated prompt. Otherwise, the server will await
+
      additional messages before starting generation. */
     turnComplete?: boolean;
 }
@@ -1663,18 +2131,32 @@ export declare interface LiveClientMessage {
 
 /** User input that is sent in real time.
 
+
+
  This is different from `ClientContentUpdate` in a few ways:
 
+
+
  - Can be sent continuously without interruption to model generation.
+
  - If there is a need to mix data interleaved across the
+
  `ClientContentUpdate` and the `RealtimeUpdate`, server attempts to
+
  optimize for best response, but there are no guarantees.
+
  - End of turn is not explicitly specified, but is rather derived from user
+
  activity (for example, end of speech).
+
  - Even before the end of turn, the data is processed incrementally
+
  to optimize for a fast start of the response from the model.
+
  - Is always assumed to be the user's input (cannot be used to populate
+
  conversation history).
+
  */
 export declare interface LiveClientRealtimeInput {
     /** Inlined bytes data for media input. */
@@ -1684,43 +2166,71 @@ export declare interface LiveClientRealtimeInput {
 /** Message contains configuration that will apply for the duration of the streaming session. */
 export declare interface LiveClientSetup {
     /**
+
      The fully qualified name of the publisher model or tuned model endpoint to
+
      use.
+
      */
     model?: string;
     /** The generation configuration for the session.
 
+
+
      The following fields are supported:
+
      - `response_logprobs`
+
      - `response_mime_type`
+
      - `logprobs`
+
      - `response_schema`
+
      - `stop_sequence`
+
      - `routing_config`
+
      - `audio_timestamp`
+
      */
     generationConfig?: GenerationConfig;
     /** The user provided system instructions for the model.
+
      Note: only text should be used in parts and content in each part will be
+
      in a separate paragraph. */
     systemInstruction?: Content;
     /**  A list of `Tools` the model may use to generate the next response.
 
+
+
      A `Tool` is a piece of code that enables the system to interact with
+
      external systems to perform an action, or set of actions, outside of
+
      knowledge and scope of the model. */
     tools?: Tool[];
 }
 
 /** Client generated response to a `ToolCall` received from the server.
 
+
+
  Individual `FunctionResponse` objects are matched to the respective
+
  `FunctionCall` objects by the `id` field.
 
+
+
  Note that in the unary and server-streaming GenerateContent APIs function
+
  calling happens by exchanging the `Content` parts, while in the bidi
+
  GenerateContent APIs function calling happens over this dedicated set of
+
  messages.
+
  */
 export declare class LiveClientToolResponse {
     /** The response to the function calls. */
@@ -1732,28 +2242,53 @@ export declare interface LiveConnectConfig {
     /** The generation configuration for the session. */
     generationConfig?: GenerationConfig;
     /** The requested modalities of the response. Represents the set of
+
      modalities that the model can return. Defaults to AUDIO if not specified.
+
      */
     responseModalities?: Modality[];
     /** The speech generation configuration.
+
      */
     speechConfig?: SpeechConfig;
     /** The user provided system instructions for the model.
+
      Note: only text should be used in parts and content in each part will be
+
      in a separate paragraph. */
     systemInstruction?: Content;
     /** A list of `Tools` the model may use to generate the next response.
 
+
+
      A `Tool` is a piece of code that enables the system to interact with
+
      external systems to perform an action, or set of actions, outside of
+
      knowledge and scope of the model. */
     tools?: Tool[];
 }
 
+/** Parameters for connecting to the live API. */
+export declare interface LiveConnectParameters {
+    /** ID of the model to use. For a list of models, see `Google models
+
+     <https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models>`_. */
+    model: string;
+    /** Optional configuration parameters for the request.
+
+     */
+    config?: LiveConnectConfig;
+}
+
 /** Incremental server update generated by the model in response to client messages.
 
+
+
  Content is generated as quickly as possible, and not in real time. Clients
+
  may choose to buffer and play it out in real time.
+
  */
 export declare interface LiveServerContent {
     /** The content that the model has generated as part of the current conversation with the user. */
@@ -1788,9 +2323,14 @@ export declare interface LiveServerToolCall {
 
 /** Notification for the client that a previously issued `ToolCallMessage` with the specified `id`s should have been not executed and should be cancelled.
 
+
+
  If there were side-effects to those tool calls, clients may attempt to undo
+
  the tool calls. This message occurs only in cases where the clients interrupt
+
  server turns.
+
  */
 export declare interface LiveServerToolCallCancellation {
     /** The ids of the tool calls to be cancelled. */
@@ -1824,32 +2364,44 @@ export declare interface LogprobsResultTopCandidates {
 /** Configuration for a Mask reference image. */
 export declare interface MaskReferenceConfig {
     /** Prompts the model to generate a mask instead of you needing to
+
      provide one (unless MASK_MODE_USER_PROVIDED is used). */
     maskMode?: MaskReferenceMode;
     /** A list of up to 5 class ids to use for semantic segmentation.
+
      Automatically creates an image mask based on specific objects. */
     segmentationClasses?: number[];
     /** Dilation percentage of the mask provided.
+
      Float between 0 and 1. */
     maskDilation?: number;
 }
 
 /** A mask reference image.
 
+
+
  This encapsulates either a mask image provided by the user and configs for
+
  the user provided mask, or only config parameters for the model to generate
+
  a mask.
 
+
+
  A mask image is an image whose non-zero values indicate where to edit the base
+
  image. If the user provides a mask image, the mask must be in the same
+
  dimensions as the raw image.
+
  */
 export declare interface MaskReferenceImage {
     /** The reference image for the editing operation. */
     referenceImage?: Image_2;
     /** The id of the reference image. */
     referenceId?: number;
-    /** The type of the reference image. */
+    /** The type of the reference image. Only set by the SDK. */
     referenceType?: string;
     /** Configuration for the mask reference image. */
     config?: MaskReferenceConfig;
@@ -1886,184 +2438,361 @@ export declare class Models extends BaseModule {
     private readonly apiClient;
     constructor(apiClient: ApiClient);
     /**
+
      * Makes an API request to generate content with a given model.
+
      *
+
      * For the `model` parameter, supported formats for Vertex AI API include:
+
      * - The Gemini model ID, for example: 'gemini-1.5-flash-002'
+
      * - The full resource name starts with 'projects/', for example:
+
      *  'projects/my-project-id/locations/us-central1/publishers/google/models/gemini-1.5-flash-002'
+
      * - The partial resource name with 'publishers/', for example:
+
      *  'publishers/google/models/gemini-1.5-flash-002' or
+
      *  'publishers/meta/models/llama-3.1-405b-instruct-maas'
+
      * - `/` separated publisher and model name, for example:
+
      * 'google/gemini-1.5-flash-002' or 'meta/llama-3.1-405b-instruct-maas'
+
      *
+
      * For the `model` parameter, supported formats for Gemini API include:
+
      * - The Gemini model ID, for example: 'gemini-1.5-flash-002'
+
      * - The model name starts with 'models/', for example:
+
      *  'models/gemini-1.5-flash-002'
+
      * - If you would like to use a tuned model, the model name starts with
+
      * 'tunedModels/', for example:
+
      * 'tunedModels/1234567890123456789'
+
      *
+
      * Some models support multimodal input and output.
+
      *
+
      * @param model - The model to use for generating content.
+
      * @param contents - The input contents to use for generating content.
+
      * @param [config] - The configuration for generating content.
+
      * @return The response from generating content.
+
      *
+
      * @example
+
      * ```ts
-     * const response = await client.models.generateContent(
-     *   'gemini-1.5-flash-002',
-     *   'why is the sky blue?',
-     *   {
+
+     * const response = await client.models.generateContent({
+
+     *   model: 'gemini-1.5-flash-002',
+
+     *   contents: 'why is the sky blue?',
+
+     *   config: {
+
      *     candidateCount: 2,
+
      *   }
-     * );
+
+     * });
+
      * console.log(response);
+
      * ```
+
      */
     generateContent: (params: types.GenerateContentParameters) => Promise<types.GenerateContentResponse>;
     /**
+
      * Makes an API request to generate content with a given model and yields the
+
      * response in chunks.
+
      *
+
      * For the `model` parameter, supported formats for Vertex AI API include:
+
      * - The Gemini model ID, for example: 'gemini-1.5-flash-002'
+
      * - The full resource name starts with 'projects/', for example:
+
      *  'projects/my-project-id/locations/us-central1/publishers/google/models/gemini-1.5-flash-002'
+
      * - The partial resource name with 'publishers/', for example:
+
      *  'publishers/google/models/gemini-1.5-flash-002' or
+
      *  'publishers/meta/models/llama-3.1-405b-instruct-maas'
+
      * - `/` separated publisher and model name, for example:
+
      * 'google/gemini-1.5-flash-002' or 'meta/llama-3.1-405b-instruct-maas'
+
      *
+
      * For the `model` parameter, supported formats for Gemini API include:
+
      * - The Gemini model ID, for example: 'gemini-1.5-flash-002'
+
      * - The model name starts with 'models/', for example:
+
      *  'models/gemini-1.5-flash-002'
+
      * - If you would like to use a tuned model, the model name starts with
+
      * 'tunedModels/', for example:
+
      * 'tunedModels/1234567890123456789'
+
      *
+
      * Some models support multimodal input and output.
+
      *
+
      * @param model - The model to use for generating content.
+
      * @param contents - The input contents to use for generating content.
+
      * @param [config] - The configuration for generating content.
+
      * @return The response from generating content.
+
      *
+
      * @example
+
      * ```ts
-     * const response = await client.models.generateContentStream(
-     *   'gemini-1.5-flash-002',
-     *   'why is the sky blue?',
-     *   {
+
+     * const response = await client.models.generateContentStream({
+
+     *   model: 'gemini-1.5-flash-002',
+
+     *   contents: 'why is the sky blue?',
+
+     *   config: {
+
      *     maxOutputTokens: 200,
+
      *   }
-     * );
+
+     * });
+
      * for await (const chunk of response) {
+
      *   console.log(chunk);
+
      * }
+
      * ```
+
      */
     generateContentStream: (params: types.GenerateContentParameters) => Promise<AsyncGenerator<types.GenerateContentResponse>>;
     private generateContentInternal;
     private generateContentStreamInternal;
     /**
+
      * Calculates embeddings for the given contents. Only text is supported.
+
      *
+
      * @param model - The model to use.
+
      * @param contents - The contents to embed.
+
      * @param [config] - The config for embedding contents.
+
      * @return The response from the API.
+
      *
+
      * @example
+
      * ```ts
-     * const response = await client.models.embedContent(
-     *  'text-embedding-004',
-     *  [
+
+     * const response = await client.models.embedContent({
+
+     *  model: 'text-embedding-004',
+
+     *  contents: [
+
      *    'What is your name?',
+
      *    'What is your favorite color?',
+
      *  ],
-     *  {
+
+     *  config: {
+
      *    outputDimensionality: 64,
+
      *  },
-     * );
+
+     * });
+
      * console.log(response);
+
      * ```
+
      */
     embedContent(params: types.EmbedContentParameters): Promise<types.EmbedContentResponse>;
     /**
+
      * Generates an image based on a text description and configuration.
+
      *
+
      * @param model - The model to use.
+
      * @param prompt - A text description of the image to generate.
+
      * @param [config] - The config for image generation.
+
      * @return The response from the API.
+
      *
+
      * @example
+
      * ```ts
-     * const response = await client.models.generateImages(
-     *  'imagen-3.0-generate-002',
-     *  'Robot holding a red skateboard',
-     *  {
+
+     * const response = await client.models.generateImages({
+
+     *  model: 'imagen-3.0-generate-002',
+
+     *  prompt: 'Robot holding a red skateboard',
+
+     *  config: {
+
      *    numberOfImages: 1,
+
      *    includeRaiReason: true,
+
      *  },
-     * );
+
+     * });
+
      * console.log(response?.generatedImages?.[0]?.image?.imageBytes);
+
      * ```
+
      */
     generateImages(params: types.GenerateImagesParameters): Promise<types.GenerateImagesResponse>;
     /**
+
      * Counts the number of tokens in the given contents. Multimodal input is
+
      * supported for Gemini models.
+
      *
+
      * @param model - The model to use for counting tokens.
+
      * @param contents - The contents to count tokens for.
+
      * @param [config] - The config for counting tokens.
+
      * @return The response from the API.
+
      *
+
      * @example
+
      * ```ts
-     * const response = await client.models.countTokens(
-     *  'gemini-1.5-flash',
-     *  'The quick brown fox jumps over the lazy dog.'
-     * );
+
+     * const response = await client.models.countTokens({
+
+     *  model: 'gemini-1.5-flash',
+
+     *  contents: 'The quick brown fox jumps over the lazy dog.'
+
+     * });
+
      * console.log(response);
+
      * ```
+
      */
     countTokens(params: types.CountTokensParameters): Promise<types.CountTokensResponse>;
     /**
+
      * Return a list of tokens based on the input contents. Only text is
+
      * supported.
+
      *
+
      * This method is not supported by the Gemini Developer API.
+
      *
+
      * @param model - The model to use.
+
      * @param contents - The content to compute tokens for.
+
      * @param [config] - The config for computing tokens.
+
      * @return The response from the API.
+
      *
+
      * @example
+
      * ```ts
-     * const response = await client.models.computeTokens(
-     *  'gemini-1.5-flash',
-     *  'What is your name?'
-     * );
+
+     * const response = await client.models.computeTokens({
+
+     *  model: 'gemini-1.5-flash',
+
+     *  contents: 'What is your name?'
+
+     * });
+
      * console.log(response);
+
      * ```
+
      */
     computeTokens(params: types.ComputeTokensParameters): Promise<types.ComputeTokensResponse>;
 }
 
+/** A long-running operation. */
+export declare interface Operation {
+    /** The server-assigned name, which is only unique within the same service that originally returns it. If you use the default HTTP mapping, the `name` should be a resource name ending with `operations/{unique_id}`. */
+    name?: string;
+    /** Service-specific metadata associated with the operation. It typically contains progress information and common metadata such as create time. Some services might not provide such metadata.  Any method that returns a long-running operation should document the metadata type, if any. */
+    metadata?: Record<string, any>;
+    /** If the value is `false`, it means the operation is still in progress. If `true`, the operation is completed, and either `error` or `response` is available. */
+    done?: boolean;
+    /** The error result of the operation in case of failure or cancellation. */
+    error?: Record<string, any>;
+    /** The normal response of the operation in case of success. */
+    response?: Record<string, any>;
+}
+
 /**
+
  * @license
+
  * Copyright 2024 Google LLC
+
  * SPDX-License-Identifier: Apache-2.0
+
  */
 export declare enum Outcome {
     OUTCOME_UNSPECIFIED = "OUTCOME_UNSPECIFIED",
@@ -2073,12 +2802,18 @@ export declare enum Outcome {
 }
 
 /**
+
  * @license
+
  * Copyright 2024 Google LLC
+
  * SPDX-License-Identifier: Apache-2.0
+
  */
 /**
+
  * @fileoverview Pagers for the GenAI List APIs.
+
  */
 /** @internal */
 declare enum PagedItem {
@@ -2090,22 +2825,31 @@ declare enum PagedItem {
 }
 
 /**
+
  * Pager class for iterating through paginated results.
+
  */
 declare class Pager<T> extends BasePager<T> implements AsyncIterable<T> {
     constructor(name: PagedItem, request: (config: any) => any, response: any, config: any);
     [Symbol.asyncIterator](): AsyncIterator<T>;
     /**
+
      * Fetches the next page of items. This makes a new API request.
+
      */
     private nextPage;
 }
 
 /** A datatype containing media content.
 
+
+
  Exactly one field within a Part should be set, representing the specific type
+
  of content being conveyed. Using multiple fields within the same `Part`
+
  instance is considered invalid.
+
  */
 export declare interface Part {
     /** Metadata for a given video. */
@@ -2151,22 +2895,28 @@ export declare enum PersonGeneration {
 /** The configuration for the prebuilt speaker to use. */
 export declare interface PrebuiltVoiceConfig {
     /** The name of the prebuilt voice to use.
+
      */
     voiceName?: string;
 }
 
 /** A raw reference image.
 
+
+
  A raw reference image represents the base image to edit, provided by the user.
+
  It can optionally be provided in addition to a mask reference image or
+
  a style reference image.
+
  */
 export declare interface RawReferenceImage {
     /** The reference image for the editing operation. */
     referenceImage?: Image_2;
     /** The id of the reference image. */
     referenceId?: number;
-    /** The type of the reference image. */
+    /** The type of the reference image. Only set by the SDK. */
     referenceType?: string;
 }
 
@@ -2240,6 +2990,7 @@ export declare interface SafetyRating {
 /** Safety settings. */
 export declare interface SafetySetting {
     /** Determines if the harm block method uses probability or probability
+
      and severity scores. */
     method?: HarmBlockMethod;
     /** Required. Harm category. */
@@ -2250,7 +3001,10 @@ export declare interface SafetySetting {
 
 /** Schema that defines the format of input and output data.
 
+
+
  Represents a select subset of an OpenAPI 3.0 schema object.
+
  */
 export declare interface Schema {
     /** Optional. Minimum number of the elements for Type.ARRAY. */
@@ -2322,31 +3076,39 @@ export declare interface Segment {
 }
 
 /**
+
  Session class represents a connection to the API.
 
+
+
  @experimental
+
  */
 export declare class Session {
-    private readonly conn;
+    readonly conn: WebSocket_2;
     private readonly apiClient;
+    onmessage?: (msg: types.LiveServerMessage) => void;
     constructor(conn: WebSocket_2, apiClient: ApiClient);
+    private handleMessage;
     private parseClientMessage;
     /**
+
      Transmits a message over the established websocket connection.
 
+
+
      @experimental
+
      */
     send(message: types.ContentListUnion | types.LiveClientContent | types.LiveClientRealtimeInput | types.LiveClientToolResponse | types.FunctionResponse | types.FunctionResponse[], turnComplete?: boolean): void;
     /**
-     Reads a LiveServerMessage from the websocket connection.
 
-     @experimental
-     */
-    receive(): Promise<types.LiveServerMessage>;
-    /**
      Close terminates the websocket connection.
 
+
+
      @experimental
+
      */
     close(): void;
 }
@@ -2354,6 +3116,7 @@ export declare class Session {
 /** The speech generation configuration. */
 export declare interface SpeechConfig {
     /** The configuration for the speaker to use.
+
      */
     voiceConfig?: VoiceConfig;
 }
@@ -2374,18 +3137,25 @@ export declare interface StyleReferenceConfig {
 
 /** A style reference image.
 
+
+
  This encapsulates a style reference image provided by the user, and
+
  additionally optional config parameters for the style reference image.
 
+
+
  A raw reference image can also be provided as a destination for the style to
+
  be applied to.
+
  */
 export declare interface StyleReferenceImage {
     /** The reference image for the editing operation. */
     referenceImage?: Image_2;
     /** The id of the reference image. */
     referenceId?: number;
-    /** The type of the reference image. */
+    /** The type of the reference image. Only set by the SDK. */
     referenceType?: string;
     /** Configuration for the style reference image. */
     config?: StyleReferenceConfig;
@@ -2401,18 +3171,25 @@ export declare interface SubjectReferenceConfig {
 
 /** A subject reference image.
 
+
+
  This encapsulates a subject reference image provided by the user, and
+
  additionally optional config parameters for the subject reference image.
 
+
+
  A raw reference image can also be provided as a destination for the subject to
+
  be applied to.
+
  */
 export declare interface SubjectReferenceImage {
     /** The reference image for the editing operation. */
     referenceImage?: Image_2;
     /** The id of the reference image. */
     referenceId?: number;
-    /** The type of the reference image. */
+    /** The type of the reference image. Only set by the SDK. */
     referenceType?: string;
     /** Configuration for the subject reference image. */
     config?: SubjectReferenceConfig;
@@ -2530,6 +3307,7 @@ export declare interface TestTableItem {
 /** The thinking features configuration. */
 export declare interface ThinkingConfig {
     /** Indicates whether to include thoughts in the response. If true, thoughts are returned only if the model supports thought and thoughts are available.
+
      */
     includeThoughts?: boolean;
 }
@@ -2551,6 +3329,7 @@ export declare interface Tool {
     /** Optional. Retrieval tool type. System will always execute the provided retrieval tool(s) to get external knowledge to answer the prompt. Retrieval results are presented to the model for generation. */
     retrieval?: Retrieval;
     /** Optional. Google Search tool type. Specialized retrieval tool
+
      that is powered by Google Search. */
     googleSearch?: GoogleSearch;
     /** Optional. GoogleSearchRetrieval tool type. Specialized retrieval tool that is powered by Google search. */
@@ -2565,7 +3344,10 @@ export declare interface ToolCodeExecution {
 
 /** Tool config.
 
+
+
  This config is shared for all tools provided in the request.
+
  */
 export declare interface ToolConfig {
     /** Optional. Function calling config. */
@@ -2575,10 +3357,10 @@ export declare interface ToolConfig {
 export declare type ToolListUnion = Tool[] | Function[];
 
 /** @internal */
-export declare function toolToMldev(apiClient: ApiClient, fromObject: types.Tool, parentObject?: Record<string, any>): Record<string, any>;
+export declare function toolToMldev(apiClient: ApiClient, fromObject: types.Tool, parentObject?: Record<string, unknown>): Record<string, unknown>;
 
 /** @internal */
-export declare function toolToVertex(apiClient: ApiClient, fromObject: types.Tool, parentObject?: Record<string, any>): Record<string, any>;
+export declare function toolToVertex(apiClient: ApiClient, fromObject: types.Tool, parentObject?: Record<string, unknown>): Record<string, unknown>;
 
 export declare interface TunedModel {
     /** Output only. The resource name of the TunedModel. Format: `projects/{project}/locations/{location}/models/{model}`. */
@@ -2587,12 +3369,27 @@ export declare interface TunedModel {
     endpoint?: string;
 }
 
+/** Supervised fine-tuning training dataset. */
+export declare interface TuningDataset {
+    /** GCS URI of the file containing training dataset in JSONL format. */
+    gcsUri?: string;
+    /** Inline examples with simple input/output text. */
+    examples?: TuningExample[];
+}
+
 /** The tuning data statistic values for TuningJob. */
 export declare interface TuningDataStats {
     /** Output only. Statistics for distillation. */
     distillationDataStats?: DistillationDataStats;
     /** The SFT Tuning data stats. */
     supervisedTuningDataStats?: SupervisedTuningDataStats;
+}
+
+export declare interface TuningExample {
+    /** Text model input. */
+    textInput?: string;
+    /** The expected model output. */
+    output?: string;
 }
 
 /** A tuning job. */
@@ -2640,10 +3437,69 @@ export declare interface TuningJob {
 declare class Tunings extends BaseModule {
     private readonly apiClient;
     constructor(apiClient: ApiClient);
+    /**
+
+     * Gets a TuningJob.
+
+     *
+
+     * @param name - The resource name of the tuning job.
+
+     * @return - A TuningJob object.
+
+     *
+
+     * @experimental - The SDK's tuning implementation is experimental, and may
+
+     * change in future versions.
+
+     */
     get: (params: types.GetTuningJobParameters) => Promise<types.TuningJob>;
+    /**
+
+     * Lists tuning jobs.
+
+     *
+
+     * @param config - The configuration for the list request.
+
+     * @return - A list of tuning jobs.
+
+     *
+
+     * @experimental - The SDK's tuning implementation is experimental, and may
+
+     * change in future versions.
+
+     */
     list: (params?: types.ListTuningJobsParameters) => Promise<Pager<types.TuningJob>>;
+    /**
+
+     * Creates a supervised fine-tuning job.
+
+     *
+
+     * @param params - The parameters for the tuning job.
+
+     * @return - A TuningJob operation.
+
+     *
+
+     * @experimental - The SDK's tuning implementation is experimental, and may
+
+     * change in future versions.
+
+     */
+    tune: (params: types.CreateTuningJobParameters) => Promise<types.TuningJob>;
     private getInternal;
     private listInternal;
+    private tuneInternal;
+    private tuneMldevInternal;
+}
+
+export declare interface TuningValidationDataset {
+    /** GCS URI of the file containing validation dataset in JSONL format. */
+    gcsUri?: string;
 }
 
 export declare enum Type {
@@ -2666,6 +3522,8 @@ declare namespace types {
         createPartFromVideoMetadata,
         createPartFromCodeExecutionResult,
         createPartFromExecutableCode,
+        createUserContent,
+        createModelContent,
         Outcome,
         Language,
         Type,
@@ -2785,6 +3643,12 @@ declare namespace types {
         ListTuningJobsConfig,
         ListTuningJobsParameters,
         ListTuningJobsResponse,
+        TuningExample,
+        TuningDataset,
+        TuningValidationDataset,
+        CreateTuningJobConfig,
+        CreateTuningJobParameters,
+        Operation,
         CreateCachedContentConfig,
         CreateCachedContentParameters,
         CachedContentUsageMetadata,
@@ -2804,6 +3668,10 @@ declare namespace types {
         FileStatus,
         File_2 as File,
         ListFilesResponse,
+        CreateFileConfig,
+        CreateFileParameters,
+        HttpResponse,
+        CreateFileResponse,
         GetFileConfig,
         GetFileParameters,
         TestTableItem,
@@ -2836,6 +3704,7 @@ declare namespace types {
         LiveClientToolResponse,
         LiveClientMessage,
         LiveConnectConfig,
+        LiveConnectParameters,
         PartUnion,
         PartListUnion,
         ContentUnion,
@@ -2858,9 +3727,11 @@ export declare interface UpdateCachedContentConfig {
 
 export declare interface UpdateCachedContentParameters {
     /** The server-generated resource name of the cached content.
+
      */
-    name?: string;
+    name: string;
     /** Configuration that contains optional parameters.
+
      */
     config?: UpdateCachedContentConfig;
 }
@@ -2879,19 +3750,26 @@ export declare interface UploadFileConfig {
 
 /** Configuration for upscaling an image.
 
+
+
  For more information on this configuration, refer to
+
  the `Imagen API reference documentation
+
  <https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api>`_.
+
  */
 export declare interface UpscaleImageConfig {
     /** Used to override HTTP request options. */
     httpOptions?: HttpOptions;
     /** Whether to include a reason for filtered-out images in the
+
      response. */
     includeRaiReason?: boolean;
     /** The image format that the output should be saved as. */
     outputMimeType?: string;
     /** The level of compression if the ``output_mime_type`` is
+
      ``image/jpeg``. */
     outputCompressionQuality?: number;
 }
@@ -2899,11 +3777,11 @@ export declare interface UpscaleImageConfig {
 /** User-facing config UpscaleImageParameters. */
 export declare interface UpscaleImageParameters {
     /** The model to use. */
-    model?: string;
+    model: string;
     /** The input image to upscale. */
-    image?: Image_2;
+    image: Image_2;
     /** The factor to upscale the image (x2 or x4). */
-    upscaleFactor?: string;
+    upscaleFactor: string;
     /** Configuration for upscaling. */
     config?: UpscaleImageConfig;
 }
@@ -2945,33 +3823,163 @@ export declare interface VideoMetadata {
 /** The configuration for the voice to use. */
 export declare interface VoiceConfig {
     /** The configuration for the speaker to use.
+
      */
     prebuiltVoiceConfig?: PrebuiltVoiceConfig;
 }
 
-declare interface WebSocket_2 {
-    /**
-     * Connects the socket to the server.
-     */
-    connect(): void;
-    /**
-     * Sends a message to the server.
-     */
-    send(message: string): void;
-    /**
-     * Closes the socket connection.
-     */
-    close(): void;
-    /**
-     * Sets the callback function for message events.
-     */
-    setOnMessageCallback(callback: any): void;
+/**
+
+ Client for making requests in a browser-compatible environment.
+
+
+
+ Use this client to make a request to the Gemini Developer API or Vertex AI
+
+ API and then wait for the response.
+
+
+
+ To initialize the client, Gemini API users can provide API key by providing
+
+ input argument `apiKey="your-api-key"`.
+
+
+
+ Vertex AI API users can provide inputs argument as `vertexai=true.
+
+
+
+ Attributes:
+
+ options: See ClientInitOptions for usage.
+
+
+
+ Usage for the Gemini Developer API:
+
+
+
+ ```ts
+
+ import * as genai from ("@google/genai");
+
+
+
+ const client = genai.Client({apiKey: 'my-api-key'})
+
+ ```
+
+
+
+ Usage for the Vertex AI API:
+
+
+
+ ```ts
+
+ import * as genai from ("@google/genai");
+
+
+
+ const client = genai.Client({
+
+ vertexai: true, project: 'my-project-id', location: 'us-central1'
+
+ })
+
+ ```
+
+ */
+export declare class WebClient {
+    protected readonly apiClient: ApiClient;
+    private readonly apiKey;
+    readonly vertexai: boolean;
+    private readonly apiVersion?;
+    readonly models: Models;
+    readonly live: Live;
+    readonly tunings: Tunings;
+    readonly chats: Chats;
+    readonly caches: Caches;
+    readonly files: Files;
+    constructor(options: WebClientInitOptions);
 }
 
 /**
+
+ * Options for initializing the WebClient. The client uses the parameters
+
+ * for authentication purposes as well as to infer if SDK should send the
+
+ * request to Vertex AI or Gemini API.
+
+ */
+export declare interface WebClientInitOptions {
+    /**
+
+     * The API Key.
+
+     */
+    apiKey: string;
+    /**
+
+     * Optional. Set to true if you intend to call Vertex AI endpoints.
+
+     * If unset, default SDK behavior is to call Gemini API.
+
+     */
+    vertexai?: boolean;
+    /**
+
+     * Optional. The API version for the endpoint.
+
+     * If unset, SDK will choose a default api version.
+
+     */
+    apiVersion?: string;
+    /**
+
+     * Optional. A set of customizable configuration for HTTP requests.
+
+     */
+    httpOptions?: HttpOptions;
+}
+
+declare interface WebSocket_2 {
+    /**
+
+     * Connects the socket to the server.
+
+     */
+    connect(): void;
+    /**
+
+     * Sends a message to the server.
+
+     */
+    send(message: string): void;
+    /**
+
+     * Closes the socket connection.
+
+     */
+    close(): void;
+    /**
+
+     * Sets the callback function for message events.
+
+     */
+    setOnMessageCallback(callback: (e: any) => void): void;
+}
+
+/**
+
  * @license
+
  * Copyright 2025 Google LLC
+
  * SPDX-License-Identifier: Apache-2.0
+
  */
 declare interface WebSocketCallbacks {
     onopen: () => void;
@@ -2982,7 +3990,9 @@ declare interface WebSocketCallbacks {
 
 declare interface WebSocketFactory {
     /**
+
      * Returns a new WebSocket instance.
+
      */
     create(url: string, headers: Record<string, string>, callbacks: WebSocketCallbacks): WebSocket_2;
 }

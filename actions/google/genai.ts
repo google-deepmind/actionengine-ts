@@ -14,15 +14,11 @@ import { encode as b64encode, decode as b64decode } from '../../base64/index.js'
 import { merge } from '../../async/index.js';
 
 
-const clients = new Map<string, genai.Client>();
+const clients = new Map<string, genai.WebClient>();
 function genAI(apiKey: string) {
     let client = clients.get(apiKey);
     if (!client) {
-        const httpOptions: genai.HttpOptions = {
-            baseUrl: 'https://preprod-generativelanguage.googleapis.com',
-            apiVersion: 'v1alpha',
-        };
-        client = new genai.Client({ vertexai: false, apiKey, httpOptions });
+        client = new genai.WebClient({ vertexai: false, apiKey, apiVersion: 'v1alpha' });
         clients.set(apiKey, client);
     }
     return client;
@@ -58,7 +54,7 @@ export class Live extends AbstractLive {
             }
         }
 
-        const live = await client.live.connect(this.model, config);
+        const live = await client.live.connect({ model: this.model, config });
 
         async function readInputs() {
             const arr = [inputs.audio, inputs.video, inputs.screen].filter((x) => !!x);
@@ -96,8 +92,7 @@ export class Live extends AbstractLive {
         }
 
         async function writeOutputs() {
-            while (true) {
-                const resp = await live.receive();
+            async function onmessage(resp: genai.LiveServerMessage) {
                 if (resp.serverContent?.modelTurn) {
                     const turn = resp.serverContent.modelTurn;
                     if (turn.parts) {
@@ -123,24 +118,29 @@ export class Live extends AbstractLive {
                 }
                 if (resp.serverContent?.turnComplete) {
                     console.log('complete turn');
-                    continue;
+                    return;
                 }
                 if (resp.serverContent?.interrupted) {
                     console.log('interupted turn');
-                    continue;
+                    return;
                 }
                 if (resp.toolCall) {
                     console.log('toolCall');
-                    continue;
+                    return;
                 }
                 if (resp.toolCallCancellation) {
                     console.log('toolCancellation');
-                    continue;
+                    return;
                 }
             }
-            // TODO(doug): When should this actually finish and close.
-            // await outputs.context?.close();
-            // await outputs.audio?.close();
+            live.onmessage = (resp) => {
+                void onmessage(resp);
+            };
+            await new Promise(() => {
+                // TODO(doug): When should this actually finish and close.
+                // await outputs.context?.close();
+                // await outputs.audio?.close();
+            });
         }
 
         void readInputs();

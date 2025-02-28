@@ -1182,11 +1182,7 @@ var clients = /* @__PURE__ */ new Map();
 function genAI(apiKey) {
   let client = clients.get(apiKey);
   if (!client) {
-    const httpOptions = {
-      baseUrl: "https://preprod-generativelanguage.googleapis.com",
-      apiVersion: "v1alpha"
-    };
-    client = new genai.Client({ vertexai: false, apiKey, httpOptions });
+    client = new genai.WebClient({ vertexai: false, apiKey, apiVersion: "v1alpha" });
     clients.set(apiKey, client);
   }
   return client;
@@ -1209,7 +1205,7 @@ var Live2 = class extends Live {
         parts: [{ text: systemString }]
       };
     }
-    const live = await client.live.connect(this.model, config);
+    const live = await client.live.connect({ model: this.model, config });
     async function readInputs() {
       const arr = [inputs.audio, inputs.video, inputs.screen].filter((x) => !!x);
       if (arr.length === 0)
@@ -1245,8 +1241,7 @@ var Live2 = class extends Live {
       }
     }
     async function writeOutputs2() {
-      while (true) {
-        const resp = await live.receive();
+      async function onmessage(resp) {
         if (resp.serverContent?.modelTurn) {
           const turn = resp.serverContent.modelTurn;
           if (turn.parts) {
@@ -1272,21 +1267,26 @@ var Live2 = class extends Live {
         }
         if (resp.serverContent?.turnComplete) {
           console.log("complete turn");
-          continue;
+          return;
         }
         if (resp.serverContent?.interrupted) {
           console.log("interupted turn");
-          continue;
+          return;
         }
         if (resp.toolCall) {
           console.log("toolCall");
-          continue;
+          return;
         }
         if (resp.toolCallCancellation) {
           console.log("toolCancellation");
-          continue;
+          return;
         }
       }
+      live.onmessage = (resp) => {
+        void onmessage(resp);
+      };
+      await new Promise(() => {
+      });
     }
     void readInputs();
     void readContext();
