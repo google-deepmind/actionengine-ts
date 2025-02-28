@@ -14,11 +14,11 @@ import { encode as b64encode, decode as b64decode } from '../../base64/index.js'
 import { merge } from '../../async/index.js';
 
 
-const clients = new Map<string, genai.WebClient>();
+const clients = new Map<string, genai.Client>();
 function genAI(apiKey: string) {
     let client = clients.get(apiKey);
     if (!client) {
-        client = new genai.WebClient({ vertexai: false, apiKey, apiVersion: 'v1alpha' });
+        client = new genai.Client({ apiKey, apiVersion: 'v1alpha' });
         clients.set(apiKey, client);
     }
     return client;

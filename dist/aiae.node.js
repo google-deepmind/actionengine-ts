@@ -1191,7 +1191,7 @@ var clients = /* @__PURE__ */ new Map();
 function genAI(apiKey) {
   let client = clients.get(apiKey);
   if (!client) {
-    client = new genai.WebClient({ vertexai: false, apiKey, apiVersion: "v1alpha" });
+    client = new genai.Client({ vertexai: false, apiKey, apiVersion: "v1alpha" });
     clients.set(apiKey, client);
   }
   return client;

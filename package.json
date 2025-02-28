@@ -26,7 +26,7 @@
     "publish": "npm run build"
   },
   "dependencies": {
-    "@google/genai": "file:lib/genai",
+    "@google/genai": "github:googleapis/js-genai",
     "blob-polyfill": "^9.0.20240710",
     "ws": "^8.18.0"
   },
