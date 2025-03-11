@@ -1160,7 +1160,7 @@ __export(genai_exports, {
   GenerateContent: () => GenerateContent2,
   Live: () => Live2
 });
-import * as genai from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 // base64/index.js
 var base64_exports = {};
@@ -1191,7 +1191,7 @@ var clients = /* @__PURE__ */ new Map();
 function genAI(apiKey) {
   let client = clients.get(apiKey);
   if (!client) {
-    client = new genai.Client({ vertexai: false, apiKey, apiVersion: "v1alpha" });
+    client = new GoogleGenAI({ apiKey, apiVersion: "v1alpha" });
     clients.set(apiKey, client);
   }
   return client;
@@ -1206,7 +1206,9 @@ var Live2 = class extends Live {
   }
   async run(session, inputs, outputs) {
     const client = genAI(this.apiKey);
-    const config = {};
+    const config = {
+      responseModalities: [Modality.AUDIO]
+    };
     if (inputs.system) {
       const system = await inputs.system;
       const systemString = system.map((c) => chunkText(c)).join("");
@@ -1214,20 +1216,36 @@ var Live2 = class extends Live {
         parts: [{ text: systemString }]
       };
     }
-    const live = await client.live.connect({ model: this.model, config });
+    const live = await client.live.connect({
+      model: this.model,
+      config,
+      callbacks: {
+        onmessage: (e) => {
+          void onmessage(e);
+        },
+        onerror: (e) => {
+          console.log("error", e);
+        },
+        onclose: (e) => {
+          console.log("close", e);
+        },
+        onopen: () => {
+          console.log("open");
+        }
+      }
+    });
     async function readInputs() {
       const arr = [inputs.audio, inputs.video, inputs.screen].filter((x) => !!x);
       if (arr.length === 0)
         return;
       for await (const chunk of merge(...arr)) {
         if (chunk.data) {
-          const i = {
-            mediaChunks: [{
+          live.sendRealtimeInput({
+            media: {
               mimeType: stringifyMimetype(chunk.metadata.mimetype),
               data: encode(chunk.data)
-            }]
-          };
-          live.send(i);
+            }
+          });
         }
       }
     }
@@ -1237,63 +1255,59 @@ var Live2 = class extends Live {
       }
       for await (const chunk of inputs.context) {
         if (chunk.data) {
-          const i = {
+          live.sendClientContent({
             turns: [{
               parts: [{
                 text: chunkText(chunk)
               }]
             }],
             turnComplete: false
-          };
-          live.send(i);
+          });
         }
       }
     }
-    async function writeOutputs2() {
-      async function onmessage(resp) {
-        if (resp.serverContent?.modelTurn) {
-          const turn = resp.serverContent.modelTurn;
-          if (turn.parts) {
-            for (const part of turn.parts) {
-              if (part.text) {
-                const chunk = textChunk(part.text);
-                await outputs.context?.write(chunk);
-              } else if (part.inlineData) {
-                const chunk = {
-                  data: decode(part.inlineData.data ?? ""),
-                  metadata: {
-                    mimetype: parseMimetype(part.inlineData.mimeType)
-                  }
-                };
-                if (chunk.metadata?.mimetype?.type === "audio") {
-                  await outputs.audio?.write(chunk);
-                } else {
-                  await outputs.context?.write(chunk);
+    async function onmessage(resp) {
+      if (resp.serverContent?.modelTurn) {
+        const turn = resp.serverContent.modelTurn;
+        if (turn.parts) {
+          for (const part of turn.parts) {
+            if (part.text) {
+              const chunk = textChunk(part.text);
+              await outputs.context?.write(chunk);
+            } else if (part.inlineData) {
+              const chunk = {
+                data: decode(part.inlineData.data ?? ""),
+                metadata: {
+                  mimetype: parseMimetype(part.inlineData.mimeType)
                 }
+              };
+              if (chunk.metadata?.mimetype?.type === "audio") {
+                await outputs.audio?.write(chunk);
+              } else {
+                await outputs.context?.write(chunk);
               }
             }
           }
         }
-        if (resp.serverContent?.turnComplete) {
-          console.log("complete turn");
-          return;
-        }
-        if (resp.serverContent?.interrupted) {
-          console.log("interupted turn");
-          return;
-        }
-        if (resp.toolCall) {
-          console.log("toolCall");
-          return;
-        }
-        if (resp.toolCallCancellation) {
-          console.log("toolCancellation");
-          return;
-        }
       }
-      live.onmessage = (resp) => {
-        void onmessage(resp);
-      };
+      if (resp.serverContent?.turnComplete) {
+        console.log("complete turn");
+        return;
+      }
+      if (resp.serverContent?.interrupted) {
+        console.log("interupted turn");
+        return;
+      }
+      if (resp.toolCall) {
+        console.log("toolCall");
+        return;
+      }
+      if (resp.toolCallCancellation) {
+        console.log("toolCancellation");
+        return;
+      }
+    }
+    async function writeOutputs2() {
       await new Promise(() => {
       });
     }
@@ -1321,7 +1335,7 @@ var GenerateContent2 = class extends GenerateContent {
       contents: promptString
     });
     for await (const chunk of response) {
-      const text = chunk.text();
+      const text = chunk.text;
       if (text) {
         await outputs.response.write(textChunk(text));
       }

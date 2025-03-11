@@ -6,7 +6,7 @@
  */
 
 import { Input, Output, Session, Chunk } from '../../interfaces.js';
-import * as genai from "@google/genai";
+import { GoogleGenAI, Modality, LiveConnectConfig, LiveServerMessage } from "@google/genai";
 import { GenerateContent as AbstractGenerateContent, Live as AbstractLive } from '../common.js';
 import { chunkText, textChunk, AudioChunk, ImageChunk } from '../../content/content.js';
 import { parseMimetype, stringifyMimetype } from '../../content/mime.js';
@@ -14,11 +14,11 @@ import { encode as b64encode, decode as b64decode } from '../../base64/index.js'
 import { merge } from '../../async/index.js';
 
 
-const clients = new Map<string, genai.Client>();
+const clients = new Map<string, GoogleGenAI>();
 function genAI(apiKey: string) {
     let client = clients.get(apiKey);
     if (!client) {
-        client = new genai.Client({ apiKey, apiVersion: 'v1alpha' });
+        client = new GoogleGenAI({ apiKey, apiVersion: 'v1alpha' });
         clients.set(apiKey, client);
     }
     return client;
@@ -44,7 +44,9 @@ export class Live extends AbstractLive {
         }): Promise<void> {
 
         const client = genAI(this.apiKey);
-        const config: genai.LiveConnectConfig = {};
+        const config: LiveConnectConfig = {
+            responseModalities: [Modality.AUDIO]
+        };
 
         if (inputs.system) {
             const system = await inputs.system;
@@ -54,20 +56,34 @@ export class Live extends AbstractLive {
             }
         }
 
-        const live = await client.live.connect({ model: this.model, config });
+        const live = await client.live.connect({
+            model: this.model, config, callbacks: {
+                onmessage: (e) => {
+                    void onmessage(e);
+                },
+                onerror: (e) => {
+                    console.log('error', e);
+                },
+                onclose: (e) => {
+                    console.log('close', e);
+                },
+                onopen: () => {
+                    console.log('open');
+                },
+            }
+        });
 
         async function readInputs() {
             const arr = [inputs.audio, inputs.video, inputs.screen].filter((x) => !!x);
             if (arr.length === 0) return;
             for await (const chunk of merge(...arr)) {
                 if (chunk.data) {
-                    const i: genai.LiveClientRealtimeInput = {
-                        mediaChunks: [{
+                    live.sendRealtimeInput({
+                        media: {
                             mimeType: stringifyMimetype(chunk.metadata.mimetype),
                             data: b64encode(chunk.data),
-                        }]
-                    };
-                    live.send(i);
+                        }
+                    });
                 }
             }
         }
@@ -78,64 +94,61 @@ export class Live extends AbstractLive {
             }
             for await (const chunk of inputs.context) {
                 if (chunk.data) {
-                    const i: genai.LiveClientContent = {
+                    live.sendClientContent({
                         turns: [{
                             parts: [{
                                 text: chunkText(chunk),
                             }],
                         }],
                         turnComplete: false,
-                    };
-                    live.send(i);
+                    });
                 }
             }
         }
 
-        async function writeOutputs() {
-            async function onmessage(resp: genai.LiveServerMessage) {
-                if (resp.serverContent?.modelTurn) {
-                    const turn = resp.serverContent.modelTurn;
-                    if (turn.parts) {
-                        for (const part of turn.parts) {
-                            if (part.text) {
-                                const chunk = textChunk(part.text);
-                                await outputs.context?.write(chunk);
-                            } else if (part.inlineData) {
-                                const chunk: Chunk = {
-                                    data: b64decode(part.inlineData.data ?? ''),
-                                    metadata: {
-                                        mimetype: parseMimetype(part.inlineData.mimeType),
-                                    }
-                                };
-                                if (chunk.metadata?.mimetype?.type === 'audio') {
-                                    await outputs.audio?.write(chunk as AudioChunk);
-                                } else {
-                                    await outputs.context?.write(chunk);
+        async function onmessage(resp: LiveServerMessage) {
+            if (resp.serverContent?.modelTurn) {
+                const turn = resp.serverContent.modelTurn;
+                if (turn.parts) {
+                    for (const part of turn.parts) {
+                        if (part.text) {
+                            const chunk = textChunk(part.text);
+                            await outputs.context?.write(chunk);
+                        } else if (part.inlineData) {
+                            const chunk: Chunk = {
+                                data: b64decode(part.inlineData.data ?? ''),
+                                metadata: {
+                                    mimetype: parseMimetype(part.inlineData.mimeType),
                                 }
+                            };
+                            if (chunk.metadata?.mimetype?.type === 'audio') {
+                                await outputs.audio?.write(chunk as AudioChunk);
+                            } else {
+                                await outputs.context?.write(chunk);
                             }
                         }
                     }
                 }
-                if (resp.serverContent?.turnComplete) {
-                    console.log('complete turn');
-                    return;
-                }
-                if (resp.serverContent?.interrupted) {
-                    console.log('interupted turn');
-                    return;
-                }
-                if (resp.toolCall) {
-                    console.log('toolCall');
-                    return;
-                }
-                if (resp.toolCallCancellation) {
-                    console.log('toolCancellation');
-                    return;
-                }
             }
-            live.onmessage = (resp) => {
-                void onmessage(resp);
-            };
+            if (resp.serverContent?.turnComplete) {
+                console.log('complete turn');
+                return;
+            }
+            if (resp.serverContent?.interrupted) {
+                console.log('interupted turn');
+                return;
+            }
+            if (resp.toolCall) {
+                console.log('toolCall');
+                return;
+            }
+            if (resp.toolCallCancellation) {
+                console.log('toolCancellation');
+                return;
+            }
+        }
+
+        async function writeOutputs() {
             await new Promise(() => {
                 // TODO(doug): When should this actually finish and close.
                 // await outputs.context?.close();
@@ -168,7 +181,7 @@ export class GenerateContent extends AbstractGenerateContent {
             contents: promptString,
         });
         for await (const chunk of response) {
-            const text = chunk.text();
+            const text = chunk.text;
             if (text) {
                 await outputs.response.write(textChunk(text));
             }

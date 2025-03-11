@@ -133,20 +133,20 @@ export class LiveDemo extends LitElement {
       </div>
       <div class="input_controls">
           <md-icon-button @click="${micCb}" toggle>
-            <md-icon>mic</md-icon>
-            <md-icon slot="selected">mic_off</md-icon>
+            <md-icon>mic_off</md-icon>
+            <md-icon slot="selected">mic</md-icon>
           </md-icon-button>
           <md-icon-button @click="${videoCb}" toggle>
-            <md-icon>videocam</md-icon>
-            <md-icon slot="selected">videocam_off</md-icon>
+            <md-icon>videocam_off</md-icon>
+            <md-icon slot="selected">videocam</md-icon>
           </md-icon-button>
           <md-icon-button @click="${screenCb}" toggle>
-            <md-icon>devices</md-icon>
-            <md-icon slot="selected">devices_off</md-icon>
+            <md-icon>devices_off</md-icon>
+            <md-icon slot="selected">devices</md-icon>
           </md-icon-button>
           <md-icon-button @click="${filesCb}" toggle>
-            <md-icon>attach_file</md-icon>
-            <md-icon slot="selected">attach_file_off</md-icon>
+            <md-icon>attach_file_off</md-icon>
+            <md-icon slot="selected">attach_file</md-icon>
           </md-icon-button>
       </div>
     </div>`;
