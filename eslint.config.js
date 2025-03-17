@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Index export.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -6,8 +12,8 @@ export default tseslint.config(
   tseslint.configs.stylisticTypeChecked,
   { ignores: ["dist/*", "lib/*", "**/*.js", "**/*.d.ts"] },
   { files: ["**/*.{ts,tsx}"] },
-  { 
-    languageOptions: { 
+  {
+    languageOptions: {
       globals: globals.browser,
       parserOptions: {
         projectService: true,
