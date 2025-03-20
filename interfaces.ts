@@ -108,7 +108,8 @@ export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T
 export interface Session {
     // Returns a streaming pipe for reading and writing a stream in the context of the session.
     // Content will exist and can be read for as long as the session is open.
-    createPipe<T extends Chunk>(): Pipe<T>;
+    // If content stream is provided when creating the pipe it is equivilent to create, write, and close all in one.
+    createPipe<T extends Chunk>(content?: Input<T>): Pipe<T>;
     // Runs an action.
     run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs<T>, outputs: U[]): Pick<ActionOutputs<T>,U>;
     // Runs a processor which is a convenience form transformed to an Action.
