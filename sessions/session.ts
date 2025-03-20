@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Input, Processor, Dict, Action, Chunk, Content, Pipe, Session as SessionInterface, SessionContext, SessionContextMiddleware, SessionProvider, SessionWriteOptions } from '../interfaces.js';
+import { Content, Processor, Dict, Action, Chunk, Pipe, Session as SessionInterface, SessionContext, SessionContextMiddleware, SessionProvider, SessionWriteOptions } from '../interfaces.js';
 import { isAsyncIterable, thenableAsyncIterable, WritableStream, ReadableStream } from '../stream/index.js';
 import {merge} from '../async/index.js';
 
@@ -94,7 +94,7 @@ function isAction(maybeAction: unknown): maybeAction is Action {
 class Session implements SessionInterface {
     constructor(private readonly context: SessionContext) { }
 
-    createPipe<T extends Chunk = Chunk>(content?: Input<T>): Pipe<T> {
+    createPipe<T extends Chunk = Chunk>(content?: Content<T>): Pipe<T> {
         const pipe = new SessionPipe<T>(this.context);
         if (content) {
             void pipe.writeAndClose(content);
