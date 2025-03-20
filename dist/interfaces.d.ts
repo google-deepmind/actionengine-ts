@@ -63,7 +63,7 @@ export type ProcessorInputs<T extends Processor> = T extends Processor<infer I, 
 export type ProcessorOutputs<T extends Processor> = T extends Processor<never, infer O, never, infer Y> ? Record<O, ReadableStream<Y>> : never;
 export type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 export interface Session {
-    createPipe<T extends Chunk>(): Pipe<T>;
+    createPipe<T extends Chunk>(content?: Input<T>): Pipe<T>;
     run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs<T>, outputs: U[]): Pick<ActionOutputs<T>, U>;
     run<T extends Processor<any, any>, U extends ProcessorConstraints<T> = ProcessorConstraints<T>>(processor: T, inputs: ProcessorInputs<T>, outputs: U[]): Pick<ProcessorOutputs<T>, U>;
     close(): Promise<void>;
