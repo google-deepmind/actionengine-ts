@@ -17,7 +17,7 @@
     "build:bundle": "esbuild --bundle index.ts --format=esm --outfile=dist/aiae.js --sourcemap --external:@google/genai",
     "build:node": "npm run build:bundle && cat node.js.polyfill dist/aiae.js > dist/aiae.node.js",
     "build:typings": "tsc --outDir ./dist --declaration --emitDeclarationOnly",
-    "build": "npm run build:node && npm run build:typings && rollup -c rollup.config.js",
+    "build": "npm run build:bundle && build:node && npm run build:typings && rollup -c rollup.config.js",
     "fix": "npx eslint --fix '**/*.ts'",
     "dev": "npm install && concurrently \"npm run build:bundle -- --watch\" \"tsc --watch\" \"esbuild --servedir=. --serve=:5432 --watch\" \"npm run dev:info\"",
     "dev:info": "sleep 3 && echo \"\n\nOpen demos at http://localhost:5432/examples\n\n\"",

@@ -678,7 +678,7 @@ function audioChunksToMediaStream(chunks) {
   }
   ;
   let [ctx, dest] = nextContext();
-  async function read() {
+  async function read2() {
     try {
       let nextStartTime = 0;
       for await (const chunk of chunks) {
@@ -714,7 +714,7 @@ function audioChunksToMediaStream(chunks) {
       }
     }
   }
-  void read();
+  void read2();
   return media;
 }
 async function* mediaStreamToAudioChunks(media) {
@@ -780,7 +780,7 @@ function imageChunksToMediaStream(chunks, options) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   let first = true;
-  async function read() {
+  async function read2() {
     try {
       for await (const c of chunks) {
         if (c.metadata?.mimetype?.type !== "image") {
@@ -806,7 +806,7 @@ function imageChunksToMediaStream(chunks, options) {
       });
     }
   }
-  void read();
+  void read2();
   const stream = canvas.captureStream(options?.frameRate);
   return stream;
 }
@@ -1122,6 +1122,7 @@ __export(actions_exports, {
   Live: () => Live,
   ReverseContent: () => ReverseContent,
   drive: () => drive_exports,
+  evergreen: () => evergreen_exports,
   google: () => google_exports
 });
 
@@ -1437,6 +1438,266 @@ var docToText = async function* (chunks) {
     }
   }
 };
+
+// actions/evergreen/index.js
+var evergreen_exports = {};
+__export(evergreen_exports, {
+  GENERATE: () => GENERATE,
+  action: () => action,
+  setBackend: () => setBackend
+});
+
+// actions/evergreen/run.js
+var socketMap = /* @__PURE__ */ new Map();
+async function getSocket(session) {
+  let socket = socketMap.get(session);
+  if (socket && socket.readyState !== WebSocket.OPEN) {
+    socket = void 0;
+    socketMap.delete(session);
+  }
+  if (!socket) {
+    const s = new WebSocket(getBackend());
+    s.binaryType = "blob";
+    await new Promise((resolve, reject) => {
+      s.addEventListener("open", () => {
+        s.removeEventListener("error", reject);
+        s.removeEventListener("close", reject);
+        resolve();
+      });
+      s.addEventListener("error", reject);
+      s.addEventListener("close", reject);
+    });
+    socket = s;
+    socketMap.set(session, s);
+  }
+  return socket;
+}
+function getUuids(inputs, outputs) {
+  const outputIds = {};
+  for (const output of Object.keys(outputs)) {
+    outputIds[output] = crypto.randomUUID();
+  }
+  const inputIds = {};
+  for (const input of Object.keys(inputs)) {
+    inputIds[input] = crypto.randomUUID();
+  }
+  return [inputIds, outputIds];
+}
+function handleMessages(socket, callbacks) {
+  socket.onmessage = async (event) => {
+    let message;
+    switch (event.type) {
+      case "text":
+      case "message":
+      case "binary":
+        const data = event.data;
+        if (data instanceof Blob) {
+          const buf = await data.arrayBuffer();
+          message = JSON.parse(new TextDecoder().decode(new Uint8Array(buf)));
+        } else if (data instanceof ArrayBuffer) {
+          message = JSON.parse(new TextDecoder().decode(new Uint8Array(data)));
+        } else if (typeof data === "string") {
+          message = JSON.parse(data);
+        } else {
+          throw new Error(`Unsupported type ${socket.binaryType} ${typeof data}`);
+        }
+        break;
+      default:
+        throw new Error(`Unknown message type ${event.type}`);
+    }
+    callbacks.onmessage(message);
+  };
+  socket.onerror = (event) => {
+    console.info("Websocket error", event, socket);
+    callbacks.onerror(event);
+  };
+  socket.onclose = (event) => {
+    console.info(`Websocket closed: ${event.reason} ${event.code}`, event, socket);
+    callbacks.onclose(event);
+  };
+}
+async function writeToOutputs(msg, outputIds, outputs, childIdMapping, pending) {
+  for (const nodeFragment of msg.nodeFragments ?? []) {
+    const key = nodeFragment.id;
+    if (!key) {
+      console.warn("nodeFragment missing id");
+      continue;
+    }
+    if (nodeFragment.childIds) {
+      for (const childId of nodeFragment.childIds) {
+        childIdMapping[childId] = childIdMapping[key];
+        const existing = pending[childId];
+        if (existing) {
+          const copy = [...existing];
+          delete pending[childId];
+          for (const existingNodeFragment of copy) {
+            await writeToOutputs({ nodeFragments: [existingNodeFragment] }, outputIds, outputs, childIdMapping, pending);
+          }
+        }
+      }
+      const streamKey2 = childIdMapping[key];
+      const stream2 = outputs[streamKey2];
+      if (stream2 && !nodeFragment.continued && outputIds[key]) {
+        await stream2.close();
+      }
+      continue;
+    }
+    const streamKey = childIdMapping[key];
+    if (!streamKey) {
+      const existing = pending[key] ?? [];
+      existing.push(nodeFragment);
+      pending[key] = existing;
+      continue;
+    }
+    const stream = outputs[streamKey];
+    const metadata = {
+      mimetype: parseMimetype(nodeFragment.chunkFragment?.metadata?.mimetype),
+      role: nodeFragment.chunkFragment?.metadata?.role
+    };
+    const data = nodeFragment.chunkFragment?.data ? decode(nodeFragment.chunkFragment.data) : void 0;
+    const ref = nodeFragment.chunkFragment?.ref;
+    const chunk = data ? { metadata, data } : ref ? { metadata, ref } : { metadata };
+    await stream.write(chunk);
+    if (!nodeFragment.continued && outputIds[key]) {
+      await stream.close();
+    }
+  }
+}
+function sendAction(socket, uri, action2, inputIds, outputIds) {
+  const actionMessage = {
+    actions: [
+      {
+        targetSpec: {
+          id: uri
+        },
+        name: action2.name,
+        inputs: Object.keys(inputIds).map((input) => {
+          return {
+            name: input,
+            id: inputIds[input]
+          };
+        }),
+        outputs: Object.keys(outputIds).map((output) => {
+          return {
+            name: output,
+            id: outputIds[output]
+          };
+        })
+      }
+    ]
+  };
+  socket.send(JSON.stringify(actionMessage));
+}
+function read(socket, inputs, inputIds) {
+  for (const [k, v] of Object.entries(inputs)) {
+    void (async (key, stream) => {
+      let seq = 0;
+      for await (const chunk of stream) {
+        const chunkFragment = {};
+        chunkFragment.metadata = {
+          mimetype: stringifyMimetype(chunk.metadata?.mimetype),
+          role: chunk.metadata?.role
+        };
+        if (chunk.data) {
+          chunkFragment.data = encode(chunk.data);
+        }
+        const dataMsg = {
+          nodeFragments: [
+            {
+              id: inputIds[key],
+              chunkFragment,
+              seq: seq++,
+              continued: true
+            }
+          ]
+        };
+        socket.send(JSON.stringify(dataMsg));
+      }
+      const closeMsg = {
+        nodeFragments: [
+          {
+            id: inputIds[key],
+            seq: seq++,
+            continued: false
+          }
+        ]
+      };
+      socket.send(JSON.stringify(closeMsg));
+    })(k, v);
+  }
+}
+async function runEvergreenAction(session, uri, action2, inputs, outputs) {
+  const socket = await getSocket(session);
+  const [inputIds, outputIds] = getUuids(inputs, outputs);
+  const childIdMapping = {};
+  for (const output of Object.keys(outputIds)) {
+    childIdMapping[outputIds[output]] = output;
+  }
+  const pending = {};
+  handleMessages(socket, {
+    onmessage: (msg) => {
+      void writeToOutputs(msg, outputIds, outputs, childIdMapping, pending);
+    },
+    onerror: (event) => {
+      console.log("error", event);
+    },
+    onclose: (event) => {
+      console.log("close", event);
+    }
+  });
+  sendAction(socket, uri, action2, inputIds, outputIds);
+  read(socket, inputs, inputIds);
+}
+var EvergreenAction = class extends Action {
+  uri;
+  action;
+  constructor(uri, action2) {
+    super();
+    this.uri = uri;
+    this.action = action2;
+  }
+  async run(session, inputs, outputs) {
+    await runEvergreenAction(session, this.uri, this.action, inputs, outputs);
+  }
+};
+var lazyBackend = void 0;
+function setBackend(address) {
+  lazyBackend = address;
+}
+function getBackend() {
+  if (lazyBackend === void 0) {
+    throw new Error("No backend address set, call setBackend().");
+  }
+  return lazyBackend;
+}
+function action(uri, action2) {
+  return new EvergreenAction(uri, action2);
+}
+
+// actions/evergreen/actions.js
+var GENERATE = {
+  name: "GENERATE",
+  inputs: [
+    {
+      name: "prompt",
+      description: "The prompt to generate from",
+      type: [
+        { type: "text", subtype: "plain" },
+        { type: "image", subtype: "png" }
+      ]
+    }
+  ],
+  outputs: [
+    {
+      name: "response",
+      description: "The response from the model",
+      type: [
+        { type: "text", subtype: "plain" },
+        { type: "image", subtype: "png" }
+      ]
+    }
+  ]
+};
 export {
   Action,
   actions_exports as actions,
@@ -1477,6 +1738,21 @@ export {
  */
 /**
  * @fileoverview base64 helper utilities.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * @fileoverview Evergreen actions.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * @fileoverview Evergreen interfaces.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * @fileoverview Evergreen.
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */

@@ -64,9 +64,9 @@ type StreamTypeOfDict<T extends Dict<unknown>> = T extends Dict<infer U> ? U ext
 declare abstract class Action<T extends Dict<Input> = Dict<Input>, U extends Dict<Output> = Dict<Output>> {
     abstract run(session: Session, inputs: T, outputs: U): Promise<void>;
 }
-type ActionInputs<T extends Action> = T extends Action<infer U> ? U : never;
-type ActionOutputs<T extends Action> = T extends Action<never, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
-type ActionConstraints<T extends Action> = keyof ActionOutputs<T> & string;
+type ActionInputs$1<T extends Action> = T extends Action<infer U> ? U : never;
+type ActionOutputs$1<T extends Action> = T extends Action<never, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
+type ActionConstraints<T extends Action> = keyof ActionOutputs$1<T> & string;
 /** Simplified transform of a unified Chunk stream. */
 type Processor<I extends string = string, O extends string = string, T extends Chunk = Chunk, U extends Chunk = Chunk> = (stream: AsyncIterable<[I, T]>) => AsyncGenerator<[O, U]>;
 /** Processor Chunks. */
@@ -78,7 +78,7 @@ type ProcessorOutputs<T extends Processor> = T extends Processor<never, infer O,
 type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 interface Session {
     createPipe<T extends Chunk>(content?: Content<T>): Pipe<T>;
-    run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs<T>, outputs: U[]): Pick<ActionOutputs<T>, U>;
+    run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs$1<T>, outputs: U[]): Pick<ActionOutputs$1<T>, U>;
     run<T extends Processor<any, any>, U extends ProcessorConstraints<T> = ProcessorConstraints<T>>(processor: T, inputs: ProcessorInputs<T>, outputs: U[]): Pick<ProcessorOutputs<T>, U>;
     close(): Promise<void>;
 }
@@ -327,49 +327,49 @@ declare function parseMimetype(mimetype?: string): Mimetype;
  * SPDX-License-Identifier: Apache-2.0
  */
 
-type index_d$7_AudioChunk = AudioChunk;
-type index_d$7_ImageChunk = ImageChunk;
-declare const index_d$7_JSON_MIME_TYPE: typeof JSON_MIME_TYPE;
-type index_d$7_PlainTextChunk = PlainTextChunk;
-type index_d$7_ROLE = ROLE;
-declare const index_d$7_ROLE: typeof ROLE;
-type index_d$7_Role = Role;
-declare const index_d$7_TEXT_MIME_TYPE: typeof TEXT_MIME_TYPE;
-type index_d$7_TextChunk = TextChunk;
-type index_d$7_VideoChunk = VideoChunk;
-declare const index_d$7_assistantPrompt: typeof assistantPrompt;
-declare const index_d$7_audioChunk: typeof audioChunk;
-declare const index_d$7_audioChunksToMediaStream: typeof audioChunksToMediaStream;
-declare const index_d$7_blobChunk: typeof blobChunk;
-declare const index_d$7_chunkBlob: typeof chunkBlob;
-declare const index_d$7_chunkJson: typeof chunkJson;
-declare const index_d$7_chunkText: typeof chunkText;
-declare const index_d$7_contextPrompt: typeof contextPrompt;
-declare const index_d$7_dataUrlFromBlob: typeof dataUrlFromBlob;
-declare const index_d$7_fetchChunk: typeof fetchChunk;
-declare const index_d$7_imageChunk: typeof imageChunk;
-declare const index_d$7_imageChunksToMediaStream: typeof imageChunksToMediaStream;
-declare const index_d$7_isChunk: typeof isChunk;
-declare const index_d$7_isDataChunk: typeof isDataChunk;
-declare const index_d$7_isJsonChunk: typeof isJsonChunk;
-declare const index_d$7_isProtoMessage: typeof isProtoMessage;
-declare const index_d$7_isRefChunk: typeof isRefChunk;
-declare const index_d$7_isTextChunk: typeof isTextChunk;
-declare const index_d$7_jsonChunk: typeof jsonChunk;
-declare const index_d$7_mediaStreamToAudioChunks: typeof mediaStreamToAudioChunks;
-declare const index_d$7_mediaStreamToImageChunks: typeof mediaStreamToImageChunks;
-declare const index_d$7_parseMimetype: typeof parseMimetype;
-declare const index_d$7_prompt: typeof prompt;
-declare const index_d$7_promptLiteralWithMetadata: typeof promptLiteralWithMetadata;
-declare const index_d$7_promptWithMetadata: typeof promptWithMetadata;
-declare const index_d$7_stringifyMimetype: typeof stringifyMimetype;
-declare const index_d$7_systemPrompt: typeof systemPrompt;
-declare const index_d$7_textChunk: typeof textChunk;
-declare const index_d$7_userPrompt: typeof userPrompt;
-declare const index_d$7_videoChunk: typeof videoChunk;
-declare const index_d$7_withMetadata: typeof withMetadata;
-declare namespace index_d$7 {
-  export { type index_d$7_AudioChunk as AudioChunk, type index_d$7_ImageChunk as ImageChunk, index_d$7_JSON_MIME_TYPE as JSON_MIME_TYPE, type index_d$7_PlainTextChunk as PlainTextChunk, index_d$7_ROLE as ROLE, type index_d$7_Role as Role, index_d$7_TEXT_MIME_TYPE as TEXT_MIME_TYPE, type index_d$7_TextChunk as TextChunk, type index_d$7_VideoChunk as VideoChunk, index_d$7_assistantPrompt as assistantPrompt, index_d$7_audioChunk as audioChunk, index_d$7_audioChunksToMediaStream as audioChunksToMediaStream, index_d$7_blobChunk as blobChunk, index_d$7_chunkBlob as chunkBlob, index_d$7_chunkJson as chunkJson, index_d$7_chunkText as chunkText, index_d$7_contextPrompt as contextPrompt, index_d$7_dataUrlFromBlob as dataUrlFromBlob, index_d$7_fetchChunk as fetchChunk, index_d$7_imageChunk as imageChunk, index_d$7_imageChunksToMediaStream as imageChunksToMediaStream, index_d$7_isChunk as isChunk, index_d$7_isDataChunk as isDataChunk, index_d$7_isJsonChunk as isJsonChunk, index_d$7_isProtoMessage as isProtoMessage, index_d$7_isRefChunk as isRefChunk, index_d$7_isTextChunk as isTextChunk, index_d$7_jsonChunk as jsonChunk, index_d$7_mediaStreamToAudioChunks as mediaStreamToAudioChunks, index_d$7_mediaStreamToImageChunks as mediaStreamToImageChunks, index_d$7_parseMimetype as parseMimetype, index_d$7_prompt as prompt, index_d$7_promptLiteralWithMetadata as promptLiteralWithMetadata, index_d$7_promptWithMetadata as promptWithMetadata, index_d$7_stringifyMimetype as stringifyMimetype, index_d$7_systemPrompt as systemPrompt, index_d$7_textChunk as textChunk, index_d$7_userPrompt as userPrompt, index_d$7_videoChunk as videoChunk, index_d$7_withMetadata as withMetadata };
+type index_d$8_AudioChunk = AudioChunk;
+type index_d$8_ImageChunk = ImageChunk;
+declare const index_d$8_JSON_MIME_TYPE: typeof JSON_MIME_TYPE;
+type index_d$8_PlainTextChunk = PlainTextChunk;
+type index_d$8_ROLE = ROLE;
+declare const index_d$8_ROLE: typeof ROLE;
+type index_d$8_Role = Role;
+declare const index_d$8_TEXT_MIME_TYPE: typeof TEXT_MIME_TYPE;
+type index_d$8_TextChunk = TextChunk;
+type index_d$8_VideoChunk = VideoChunk;
+declare const index_d$8_assistantPrompt: typeof assistantPrompt;
+declare const index_d$8_audioChunk: typeof audioChunk;
+declare const index_d$8_audioChunksToMediaStream: typeof audioChunksToMediaStream;
+declare const index_d$8_blobChunk: typeof blobChunk;
+declare const index_d$8_chunkBlob: typeof chunkBlob;
+declare const index_d$8_chunkJson: typeof chunkJson;
+declare const index_d$8_chunkText: typeof chunkText;
+declare const index_d$8_contextPrompt: typeof contextPrompt;
+declare const index_d$8_dataUrlFromBlob: typeof dataUrlFromBlob;
+declare const index_d$8_fetchChunk: typeof fetchChunk;
+declare const index_d$8_imageChunk: typeof imageChunk;
+declare const index_d$8_imageChunksToMediaStream: typeof imageChunksToMediaStream;
+declare const index_d$8_isChunk: typeof isChunk;
+declare const index_d$8_isDataChunk: typeof isDataChunk;
+declare const index_d$8_isJsonChunk: typeof isJsonChunk;
+declare const index_d$8_isProtoMessage: typeof isProtoMessage;
+declare const index_d$8_isRefChunk: typeof isRefChunk;
+declare const index_d$8_isTextChunk: typeof isTextChunk;
+declare const index_d$8_jsonChunk: typeof jsonChunk;
+declare const index_d$8_mediaStreamToAudioChunks: typeof mediaStreamToAudioChunks;
+declare const index_d$8_mediaStreamToImageChunks: typeof mediaStreamToImageChunks;
+declare const index_d$8_parseMimetype: typeof parseMimetype;
+declare const index_d$8_prompt: typeof prompt;
+declare const index_d$8_promptLiteralWithMetadata: typeof promptLiteralWithMetadata;
+declare const index_d$8_promptWithMetadata: typeof promptWithMetadata;
+declare const index_d$8_stringifyMimetype: typeof stringifyMimetype;
+declare const index_d$8_systemPrompt: typeof systemPrompt;
+declare const index_d$8_textChunk: typeof textChunk;
+declare const index_d$8_userPrompt: typeof userPrompt;
+declare const index_d$8_videoChunk: typeof videoChunk;
+declare const index_d$8_withMetadata: typeof withMetadata;
+declare namespace index_d$8 {
+  export { type index_d$8_AudioChunk as AudioChunk, type index_d$8_ImageChunk as ImageChunk, index_d$8_JSON_MIME_TYPE as JSON_MIME_TYPE, type index_d$8_PlainTextChunk as PlainTextChunk, index_d$8_ROLE as ROLE, type index_d$8_Role as Role, index_d$8_TEXT_MIME_TYPE as TEXT_MIME_TYPE, type index_d$8_TextChunk as TextChunk, type index_d$8_VideoChunk as VideoChunk, index_d$8_assistantPrompt as assistantPrompt, index_d$8_audioChunk as audioChunk, index_d$8_audioChunksToMediaStream as audioChunksToMediaStream, index_d$8_blobChunk as blobChunk, index_d$8_chunkBlob as chunkBlob, index_d$8_chunkJson as chunkJson, index_d$8_chunkText as chunkText, index_d$8_contextPrompt as contextPrompt, index_d$8_dataUrlFromBlob as dataUrlFromBlob, index_d$8_fetchChunk as fetchChunk, index_d$8_imageChunk as imageChunk, index_d$8_imageChunksToMediaStream as imageChunksToMediaStream, index_d$8_isChunk as isChunk, index_d$8_isDataChunk as isDataChunk, index_d$8_isJsonChunk as isJsonChunk, index_d$8_isProtoMessage as isProtoMessage, index_d$8_isRefChunk as isRefChunk, index_d$8_isTextChunk as isTextChunk, index_d$8_jsonChunk as jsonChunk, index_d$8_mediaStreamToAudioChunks as mediaStreamToAudioChunks, index_d$8_mediaStreamToImageChunks as mediaStreamToImageChunks, index_d$8_parseMimetype as parseMimetype, index_d$8_prompt as prompt, index_d$8_promptLiteralWithMetadata as promptLiteralWithMetadata, index_d$8_promptWithMetadata as promptWithMetadata, index_d$8_stringifyMimetype as stringifyMimetype, index_d$8_systemPrompt as systemPrompt, index_d$8_textChunk as textChunk, index_d$8_userPrompt as userPrompt, index_d$8_videoChunk as videoChunk, index_d$8_withMetadata as withMetadata };
 }
 
 /**
@@ -402,9 +402,9 @@ declare const debug: SessionContextMiddleware;
  * SPDX-License-Identifier: Apache-2.0
  */
 
-declare const index_d$6_debug: typeof debug;
-declare namespace index_d$6 {
-  export { index_d$6_debug as debug };
+declare const index_d$7_debug: typeof debug;
+declare namespace index_d$7 {
+  export { index_d$7_debug as debug };
 }
 
 /**
@@ -413,10 +413,10 @@ declare namespace index_d$6 {
  * SPDX-License-Identifier: Apache-2.0
  */
 
-declare const index_d$5_local: typeof local;
-declare const index_d$5_sessionProvider: typeof sessionProvider;
-declare namespace index_d$5 {
-  export { index_d$5_local as local, index_d$6 as middleware, index_d$5_sessionProvider as sessionProvider };
+declare const index_d$6_local: typeof local;
+declare const index_d$6_sessionProvider: typeof sessionProvider;
+declare namespace index_d$6 {
+  export { index_d$6_local as local, index_d$7 as middleware, index_d$6_sessionProvider as sessionProvider };
 }
 
 /**
@@ -509,7 +509,7 @@ declare namespace genai_d {
  * SPDX-License-Identifier: Apache-2.0
  */
 
-declare namespace index_d$4 {
+declare namespace index_d$5 {
   export { genai_d as genai };
 }
 
@@ -528,9 +528,101 @@ declare const docToText: Processor<'docUrl', 'docText'>;
  * SPDX-License-Identifier: Apache-2.0
  */
 
-declare const index_d$3_docToText: typeof docToText;
+declare const index_d$4_docToText: typeof docToText;
+declare namespace index_d$4 {
+  export { index_d$4_docToText as docToText };
+}
+
+/**
+ * @fileoverview Evergreen interfaces.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/** Named parameter spec. */
+declare interface NamedParameterSchema {
+    readonly name: string;
+    readonly description: string;
+    readonly type: readonly Mimetype[];
+}
+/** Action spec. */
+declare interface ActionSchema {
+    readonly name: string;
+    readonly inputs: readonly NamedParameterSchema[];
+    readonly outputs: readonly NamedParameterSchema[];
+}
+/** Action input names. */
+declare type ActionInputNames<T extends ActionSchema> = T['inputs'][number]['name'];
+/** Action inputs. */
+declare type ActionInputs<T extends ActionSchema> = Readonly<Record<ActionInputNames<T>, Input>>;
+/** Action output names. */
+declare type ActionOutputNames<T extends ActionSchema> = T['outputs'][number]['name'];
+/** Action outputs. */
+declare type ActionOutputs<T extends ActionSchema> = Readonly<Record<ActionOutputNames<T>, Output>>;
+declare type ActionFromSchema<T extends ActionSchema> = Action<ActionInputs<T>, ActionOutputs<T>>;
+
+/**
+ * @fileoverview Evergreen actions.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/** Sets the backend address wss://myapi/adddress?key=mykey. */
+declare function setBackend(address: string): void;
+declare function action<T extends ActionSchema>(uri: string, action: T): ActionFromSchema<T>;
+
+/**
+ * @fileoverview Evergreen actions.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/** Generate action */
+declare const GENERATE: {
+    readonly name: "GENERATE";
+    readonly inputs: readonly [{
+        readonly name: "prompt";
+        readonly description: "The prompt to generate from";
+        readonly type: readonly [{
+            readonly type: "text";
+            readonly subtype: "plain";
+        }, {
+            readonly type: "image";
+            readonly subtype: "png";
+        }];
+    }];
+    readonly outputs: readonly [{
+        readonly name: "response";
+        readonly description: "The response from the model";
+        readonly type: readonly [{
+            readonly type: "text";
+            readonly subtype: "plain";
+        }, {
+            readonly type: "image";
+            readonly subtype: "png";
+        }];
+    }];
+};
+/** Generate action type */
+type GENERATE = typeof GENERATE;
+
+/**
+ * @fileoverview Evergreen.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+type index_d$3_ActionFromSchema<T extends ActionSchema> = ActionFromSchema<T>;
+type index_d$3_ActionInputNames<T extends ActionSchema> = ActionInputNames<T>;
+type index_d$3_ActionInputs<T extends ActionSchema> = ActionInputs<T>;
+type index_d$3_ActionOutputNames<T extends ActionSchema> = ActionOutputNames<T>;
+type index_d$3_ActionOutputs<T extends ActionSchema> = ActionOutputs<T>;
+type index_d$3_ActionSchema = ActionSchema;
+type index_d$3_GENERATE = GENERATE;
+type index_d$3_NamedParameterSchema = NamedParameterSchema;
+declare const index_d$3_action: typeof action;
+declare const index_d$3_setBackend: typeof setBackend;
 declare namespace index_d$3 {
-  export { index_d$3_docToText as docToText };
+  export { type index_d$3_ActionFromSchema as ActionFromSchema, type index_d$3_ActionInputNames as ActionInputNames, type index_d$3_ActionInputs as ActionInputs, type index_d$3_ActionOutputNames as ActionOutputNames, type index_d$3_ActionOutputs as ActionOutputs, type index_d$3_ActionSchema as ActionSchema, type index_d$3_GENERATE as GENERATE, type index_d$3_NamedParameterSchema as NamedParameterSchema, index_d$3_action as action, index_d$3_setBackend as setBackend };
 }
 
 /**
@@ -542,7 +634,7 @@ declare namespace index_d$3 {
 type index_d$2_ReverseContent = ReverseContent;
 declare const index_d$2_ReverseContent: typeof ReverseContent;
 declare namespace index_d$2 {
-  export { GenerateContent$1 as GenerateContent, Live$1 as Live, index_d$2_ReverseContent as ReverseContent, index_d$3 as drive, index_d$4 as google };
+  export { GenerateContent$1 as GenerateContent, Live$1 as Live, index_d$2_ReverseContent as ReverseContent, index_d$4 as drive, index_d$3 as evergreen, index_d$5 as google };
 }
 
 /**
@@ -576,4 +668,4 @@ declare namespace index_d {
   export { index_d_decode as decode, index_d_encode as encode };
 }
 
-export { Action, type ActionConstraints, type ActionInputs, type ActionOutputs, type Any, type Chunk, type ChunkMetadata, type Content, type DataChunk, type Dict, type Input, type MetadataChunk, type Mimetype, type Output, type Pipe, type Processor, type ProcessorChunks, type ProcessorConstraints, type ProcessorInputs, type ProcessorOutputs, type RefChunk, type Session, type SessionContext, type SessionContextMiddleware, type SessionProvider, type SessionWriteOptions, index_d$2 as actions, index_d$1 as async, index_d as base64, index_d$7 as content, index_d$5 as sessions };
+export { Action, type ActionConstraints, type ActionInputs$1 as ActionInputs, type ActionOutputs$1 as ActionOutputs, type Any, type Chunk, type ChunkMetadata, type Content, type DataChunk, type Dict, type Input, type MetadataChunk, type Mimetype, type Output, type Pipe, type Processor, type ProcessorChunks, type ProcessorConstraints, type ProcessorInputs, type ProcessorOutputs, type RefChunk, type Session, type SessionContext, type SessionContextMiddleware, type SessionProvider, type SessionWriteOptions, index_d$2 as actions, index_d$1 as async, index_d as base64, index_d$8 as content, index_d$6 as sessions };
