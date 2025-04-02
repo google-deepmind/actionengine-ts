@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as aiae from 'aiae';
+import * as aiae from 'actionengine';
 
 function apiKey(): string {
     const STORAGE_KEY = 'GENAI_API_KEY';
@@ -42,7 +42,7 @@ function main() {
 
         const inputPrompt = session.createPipe();
         await inputPrompt.writeAndClose(aiae.content.prompt`${inputText}`);
-        const outputs = session.run(flashGenerate, {'prompt': inputPrompt}, ['response']);
+        const outputs = session.run(flashGenerate, { 'prompt': inputPrompt }, ['response']);
 
         for await (const chunk of outputs.response) {
             modelEl.innerText += aiae.content.chunkText(chunk);

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as aiae from 'aiae';
+import * as aiae from 'actionengine';
 
 // Example custom action
 class EchoAction extends aiae.Action {
@@ -21,11 +21,11 @@ class EchoAction extends aiae.Action {
 
 
 const echoProcessor: aiae.Processor<'prompt', 'response'> =
-    async function*(chunks) {
-  for await (const kv of chunks) {
+  async function* (chunks) {
+    for await (const kv of chunks) {
       yield ['response', kv[1]];
+    }
   }
-}
 
 async function main() {
   const echo = new EchoAction();

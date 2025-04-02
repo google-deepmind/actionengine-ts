@@ -39,7 +39,7 @@
             "ESNext"
         ],
         "paths": {
-            "aiae": [
+            "actionengine": [
                 "."
             ]
         }

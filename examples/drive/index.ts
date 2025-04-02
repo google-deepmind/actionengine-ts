@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as aiae from 'aiae';
+import * as aiae from 'actionengine';
 
 const outputArea = document.querySelector('#output');
 if (!outputArea) {
@@ -14,7 +14,7 @@ if (!outputArea) {
 document.querySelector('#submitButton')?.addEventListener('click', async () => {
   const session = aiae.sessions.local(aiae.sessions.middleware.debug);
   const docUrl = session.createPipe();
-  const docUrlInput: HTMLInputElement|null = document.querySelector('#docUrl');
+  const docUrlInput: HTMLInputElement | null = document.querySelector('#docUrl');
   const docUrlValue = docUrlInput?.value ?? '';
   await docUrl.writeAndClose(aiae.content.textChunk(docUrlValue));
   const inputs = { docUrl };

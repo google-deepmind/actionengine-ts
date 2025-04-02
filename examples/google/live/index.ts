@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as aiae from 'aiae';
+import * as aiae from 'actionengine';
 import { LitElement, html, css, PropertyValueMap } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
 // import '@material/web/all.js';

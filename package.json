@@ -1,25 +1,25 @@
 {
-  "name": "aiae",
+  "name": "actionengine",
   "version": "0.0.1",
   "author": "Google DeepMind <no-reply@google.com>",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {
-    ".": "./dist/aiae.js",
-    "./node": "./dist/aiae.node.js"
+    ".": "./dist/actionengine.js",
+    "./node": "./dist/actionengine.node.js"
   },
   "types": "index.ts",
   "repository": {
     "type": "git",
-    "url": "git://github.com/google-deepmind/ai-action-engine-ts"
+    "url": "git://github.com/google-deepmind/actionengine-ts"
   },
   "scripts": {
-    "build:bundle": "esbuild --bundle index.ts --format=esm --outfile=dist/aiae.js --sourcemap --external:@google/genai",
-    "build:node": "npm run build:bundle && cat node.js.polyfill dist/aiae.js > dist/aiae.node.js",
+    "build:bundle": "esbuild --bundle index.ts --format=esm --outfile=dist/actionengine.js --sourcemap --external:@google/genai",
+    "build:node": "npm run build:bundle && cat node.js.polyfill dist/actionengine.js > dist/actionengine.node.js",
     "build:typings": "tsc --outDir ./dist --declaration --emitDeclarationOnly",
-    "build": "npm run build:bundle && build:node && npm run build:typings && rollup -c rollup.config.js",
+    "build": "npm run build:typings && npm run build:bundle && build:node && rollup -c rollup.config.js",
     "fix": "npx eslint --fix '**/*.ts'",
-    "dev": "npm install && concurrently \"npm run build:bundle -- --watch\" \"tsc --watch\" \"esbuild --servedir=. --serve=:5432 --watch\" \"npm run dev:info\"",
+    "start": "npm install && concurrently \"npm run build:bundle -- --watch\" \"tsc --watch\" \"esbuild --servedir=. --serve=:5432 --watch\" \"npm run dev:info\"",
     "dev:info": "sleep 3 && echo \"\n\nOpen demos at http://localhost:5432/examples\n\n\"",
     "test": "tsc && jasmine --config=jasmine.json",
     "test:watch": "npm install && nodemon -e ts --exec \"npm run test\"",
