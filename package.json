@@ -11,7 +11,7 @@
   "types": "index.ts",
   "repository": {
     "type": "git",
-    "url": "git://github.com/google-deepmind/actionengine-ts"
+    "url": "https://github.com/google-deepmind/actionengine-ts"
   },
   "scripts": {
     "build:bundle": "esbuild --bundle index.ts --format=esm --outfile=dist/actionengine.js --sourcemap --external:@google/genai",
