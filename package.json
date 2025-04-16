@@ -1,5 +1,5 @@
 {
-  "name": "actionengine",
+  "name": "@google/actionengine",
   "version": "0.0.1",
   "author": "Google DeepMind <no-reply@google.com>",
   "license": "Apache-2.0",
