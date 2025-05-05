@@ -6,104 +6,67 @@
 
 import {decode as b64decode, encode as b64encode} from '../../base64/index.js';
 import {parseMimetype, stringifyMimetype} from '../../content/mime.js';
-import {Action, Chunk, ChunkMetadata, Input, Session} from '../../interfaces.js';
+import {
+  Action,
+  Chunk,
+  ChunkMetadata,
+  Input,
+  Session,
+} from '../../interfaces.js';
 
 import * as eg from './evergreen_spec.js';
-import {ActionFromSchema, ActionInputs, ActionOutputs, ActionSchema} from './interfaces.js';
+import {
+  ActionFromSchema,
+  ActionInputs,
+  ActionOutputs,
+  ActionSchema,
+} from './interfaces.js';
+import {
+  CachingConnectionManagerFactory,
+  ConnectionManager,
+  WebSocketConnectionManagerFactoryFn,
+} from './net.js';
 
-const socketMap = new Map<Session, WebSocket>();
+export interface StreamIdGenerator {
+  generateStreamId(streamName: string): string;
+}
 
-async function getSocket(session: Session): Promise<WebSocket> {
-  let socket = socketMap.get(session);
-  if (socket && socket.readyState !== WebSocket.OPEN) {
-    socket = undefined;
-    socketMap.delete(session);
+class UuidStreamIdGenerator implements StreamIdGenerator {
+  generateStreamId(streamName: string): string {
+    return crypto.randomUUID();
   }
-  if (!socket) {
-    const s = new WebSocket(getBackend());
-    s.binaryType = 'blob';
-    await new Promise<void>((resolve, reject) => {
-      s.addEventListener('open', () => {
-        s.removeEventListener('error', reject);
-        s.removeEventListener('close', reject);
-        resolve();
-      });
-      s.addEventListener('error', reject);
-      s.addEventListener('close', reject);
-    });
-    socket = s;
-    socketMap.set(session, s);
-  }
-  return socket;
+}
+
+export class Options {
+  constructor(
+    readonly backend: string,
+    readonly idGenerator: StreamIdGenerator,
+    readonly connectionFactory: CachingConnectionManagerFactory<unknown>,
+  ) {}
 }
 
 function getUuids<T extends ActionSchema>(
-    inputs: ActionInputs<T>, outputs: ActionOutputs<T>):
-    [Record<string, string>, Record<string, string>] {
+  inputs: ActionInputs<T>,
+  outputs: ActionOutputs<T>,
+  idGenerator: StreamIdGenerator,
+): [Record<string, string>, Record<string, string>] {
   const outputIds: Record<string, string> = {};
-  for (const output of Object.keys(outputs)) {
-    outputIds[output] = crypto.randomUUID();
+  for (const outputKey of Object.keys(outputs)) {
+    outputIds[outputKey] = idGenerator.generateStreamId(outputKey);
   }
   const inputIds: Record<string, string> = {};
-  for (const input of Object.keys(inputs)) {
-    inputIds[input] = crypto.randomUUID();
+  for (const inputKey of Object.keys(inputs)) {
+    inputIds[inputKey] = idGenerator.generateStreamId(inputKey);
   }
   return [inputIds, outputIds];
 }
 
-function handleMessages(socket: WebSocket, callbacks: {
-  onmessage: (msg: eg.SessionMessage) => void,
-  onerror: (event: Event) => void,
-  onclose: (event: Event) => void,
-}) {
-  // Set up the reading of the response.
-  socket.onmessage = async (event: MessageEvent) => {
-    let message: eg.SessionMessage;
-    switch (event.type) {
-      case 'text':
-      case 'message':
-      case 'binary':
-        const data = event.data as unknown;
-        if (data instanceof Blob) {
-          const buf = await data.arrayBuffer();
-          message = JSON.parse(new TextDecoder().decode(new Uint8Array(buf))) as
-              eg.SessionMessage;
-        } else if (data instanceof ArrayBuffer) {
-          message =
-              JSON.parse(new TextDecoder().decode(new Uint8Array(data))) as
-              eg.SessionMessage;
-        } else if (typeof data === 'string') {
-          message = JSON.parse(data) as eg.SessionMessage;
-        } else {
-          throw new Error(
-              `Unsupported type ${socket.binaryType} ${typeof data}`);
-        }
-        break;
-      default:
-        throw new Error(`Unknown message type ${event.type}`);
-    }
-    callbacks.onmessage(message);
-  };
-  socket.onerror = (event) => {
-    console.info('Websocket error', event, socket);
-    callbacks.onerror(event);
-  };
-  socket.onclose = (event) => {
-    // See
-    // https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent/code#value
-    // for mapping from code to explanation.
-    console.info(
-        `Websocket closed: ${event.reason} ${event.code}`, event, socket);
-    callbacks.onclose(event);
-  };
-}
-
 async function writeToOutputs<T extends ActionSchema>(
-    msg: eg.SessionMessage,
-    outputIds: Record<string, string>,
-    outputs: ActionOutputs<T>,
-    childIdMapping: Record<string, string>,
-    pending: Record<string, eg.NodeFragment[]>,
+  msg: eg.SessionMessage,
+  outputIds: Record<string, string>,
+  outputs: ActionOutputs<T>,
+  childIdMapping: Record<string, string>,
+  pending: Record<string, eg.NodeFragment[]>,
 ) {
   for (const nodeFragment of msg.nodeFragments ?? []) {
     const key = nodeFragment.id;
@@ -121,11 +84,11 @@ async function writeToOutputs<T extends ActionSchema>(
           delete pending[childId];
           for (const existingNodeFragment of copy) {
             await writeToOutputs(
-                {nodeFragments: [existingNodeFragment]},
-                outputIds,
-                outputs,
-                childIdMapping,
-                pending,
+              {nodeFragments: [existingNodeFragment]},
+              outputIds,
+              outputs,
+              childIdMapping,
+              pending,
             );
           }
         }
@@ -149,9 +112,9 @@ async function writeToOutputs<T extends ActionSchema>(
       mimetype: parseMimetype(nodeFragment.chunkFragment?.metadata?.mimetype),
       role: nodeFragment.chunkFragment?.metadata?.role,
     };
-    const data = nodeFragment.chunkFragment?.data ?
-        b64decode(nodeFragment.chunkFragment.data) :
-        undefined;
+    const data = nodeFragment.chunkFragment?.data
+      ? b64decode(nodeFragment.chunkFragment.data)
+      : undefined;
     const ref = nodeFragment.chunkFragment?.ref;
     const chunk = data ? {metadata, data} : ref ? {metadata, ref} : {metadata};
     await stream.write(chunk as Chunk);
@@ -162,11 +125,11 @@ async function writeToOutputs<T extends ActionSchema>(
 }
 
 function sendAction(
-    socket: WebSocket,
-    uri: string,
-    action: ActionSchema,
-    inputIds: Record<string, string>,
-    outputIds: Record<string, string>,
+  connectionManager: ConnectionManager<unknown>,
+  uri: string,
+  action: ActionSchema,
+  inputIds: Record<string, string>,
+  outputIds: Record<string, string>,
 ) {
   const actionMessage: eg.SessionMessage = {
     actions: [
@@ -190,14 +153,15 @@ function sendAction(
       },
     ],
   };
-  socket.send(JSON.stringify(actionMessage));
+  connectionManager.send(actionMessage);
 }
 
-
 // Read the response.
-function read<T extends ActionSchema>(
-    socket: WebSocket, inputs: ActionInputs<T>,
-    inputIds: Record<string, string>) {
+function sendInput<T extends ActionSchema>(
+  connectionManager: ConnectionManager<unknown>,
+  inputs: ActionInputs<T>,
+  inputIds: Record<string, string>,
+) {
   for (const [k, v] of Object.entries(inputs)) {
     void (async (key: string, stream: Input) => {
       let seq = 0;
@@ -220,7 +184,7 @@ function read<T extends ActionSchema>(
             },
           ],
         };
-        socket.send(JSON.stringify(dataMsg));
+        connectionManager.send(dataMsg);
       }
       // close
       const closeMsg: eg.SessionMessage = {
@@ -232,65 +196,74 @@ function read<T extends ActionSchema>(
           },
         ],
       };
-      socket.send(JSON.stringify(closeMsg));
+      connectionManager.send(closeMsg);
     })(k, v as Input);
   }
 }
 
 async function runEvergreenAction<T extends ActionSchema>(
-    session: Session,
-    uri: string,
-    action: T,
-    inputs: ActionInputs<T>,
-    outputs: ActionOutputs<T>,
+  session: Session,
+  uri: string,
+  action: T,
+  inputs: ActionInputs<T>,
+  outputs: ActionOutputs<T>,
+  options: Options,
 ) {
-  const socket = await getSocket(session);
+  const connectionManager = options.connectionFactory.getConnection(
+    session,
+    options.backend,
+  );
+  await connectionManager.connect();
 
   // Create uuids for the input and output streams.
-  const [inputIds, outputIds] = getUuids(inputs, outputs);
+  const [inputIds, outputIds] = getUuids(inputs, outputs, options.idGenerator);
   const childIdMapping: Record<string, string> = {};
   for (const output of Object.keys(outputIds)) {
     childIdMapping[outputIds[output]] = output;
   }
   const pending: Record<string, eg.NodeFragment[]> = {};
 
-  handleMessages(socket, {
-    onmessage: (msg: eg.SessionMessage) => {
-      void writeToOutputs(msg, outputIds, outputs, childIdMapping, pending);
-    },
-    onerror: (event: Event) => {
-      console.log('error', event);
-    },
-    onclose: (event: Event) => {
-      console.log('close', event);
-    },
+  connectionManager.registerSessionMessageCallback((msg: eg.SessionMessage) => {
+    void writeToOutputs(msg, outputIds, outputs, childIdMapping, pending);
   });
 
-  sendAction(socket, uri, action, inputIds, outputIds);
-
-  read(socket, inputs, inputIds);
+  sendAction(connectionManager, uri, action, inputIds, outputIds);
+  sendInput(connectionManager, inputs, inputIds);
 
   // TODO(doug): await all the writes to finish.
 }
-
 class EvergreenAction<T extends ActionSchema> extends Action {
   constructor(
-      private readonly uri: string,
-      private readonly action: T,
+    private readonly uri: string,
+    private readonly action: T,
+    private readonly options: Options,
   ) {
     super();
   }
   async run(
-      session: Session, inputs: ActionInputs<T>, outputs: ActionOutputs<T>) {
-    await runEvergreenAction(session, this.uri, this.action, inputs, outputs);
+    session: Session,
+    inputs: ActionInputs<T>,
+    outputs: ActionOutputs<T>,
+  ) {
+    await runEvergreenAction(
+      session,
+      this.uri,
+      this.action,
+      inputs,
+      outputs,
+      this.options,
+    );
   }
 }
 
-let lazyBackend: string|undefined = undefined;
+const defaultConnectionFactory: CachingConnectionManagerFactory<unknown> =
+  new CachingConnectionManagerFactory(WebSocketConnectionManagerFactoryFn);
 
-/** Sets the backend address wss://myapi/adddress?key=mykey. */
+let lazyBackend: string | undefined = undefined;
+
+/** Sets the backend address wss://myapi/address?key=mykey. */
 export function setBackend(address: string) {
-  lazyBackend = address
+  lazyBackend = address;
 }
 
 function getBackend(): string {
@@ -301,6 +274,16 @@ function getBackend(): string {
 }
 
 export function action<T extends ActionSchema>(
-    uri: string, action: T): ActionFromSchema<T> {
-  return new EvergreenAction<T>(uri, action);
+  uri: string,
+  action: T,
+  options?: Options,
+): ActionFromSchema<T> {
+  if (options === undefined) {
+    options = new Options(
+      getBackend(),
+      new UuidStreamIdGenerator(),
+      defaultConnectionFactory,
+    );
+  }
+  return new EvergreenAction<T>(uri, action, options);
 }
