@@ -1,5 +1,7 @@
 /**
  * @fileoverview Test utilities for this package.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import {SessionMessage} from './evergreen_spec.js';
