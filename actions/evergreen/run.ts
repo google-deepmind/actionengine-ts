@@ -27,22 +27,58 @@ import {
   WebSocketConnectionManagerFactoryFn,
 } from './net.js';
 
+/**
+ * Interface for functions that generate identifiers for input and output
+ * streams. Most library users can depend on the default implementation,
+ * `UuidStreamIdGenerator`. For unit tests: this interface enables tests
+ * to 1) verify that client-issued messages are assigned the expected stream id
+ * and 2) simulate server responses on specific streams.
+ */
 export interface StreamIdGenerator {
   generateStreamId(streamName: string): string;
 }
 
-class UuidStreamIdGenerator implements StreamIdGenerator {
+/**
+ * Default implementation of `StreamIdGenerator` that assigns random UUIDs
+ * to each stream.
+ */
+export class UuidStreamIdGenerator implements StreamIdGenerator {
   generateStreamId(streamName: string): string {
     return crypto.randomUUID();
   }
 }
 
+/**
+ * Configuration options used to create a new `ActionFromSchema`. See
+ * the `action` function.
+ */
 export class Options {
+  readonly backend: string;
+  readonly idGenerator: StreamIdGenerator;
+  readonly connectionFactory: CachingConnectionManagerFactory<unknown>;
+
   constructor(
-    readonly backend: string,
-    readonly idGenerator: StreamIdGenerator,
-    readonly connectionFactory: CachingConnectionManagerFactory<unknown>,
-  ) {}
+    // The backend address to use. If not provided to the constructor, the value
+    // returned by `getBackend()` will be used. Note that calling `getBackend`
+    // without first calling `setBackend` will result in an error. This means
+    // that users should either explicitly set the backend address in the
+    // constructor or they must call `setBackend` prior to calling this
+    // constructor. Alternatively, users can omit the Options object
+    // altogether when calling the `action` function, in which case the
+    // `setBackend` function must be called prior to calling the `action`
+    // function.
+    backend?: string,
+    // The stream id generator to use. If undefined, a default implementation
+    // will be used.
+    idGenerator?: StreamIdGenerator,
+    // The connection factory to use. If undefined, a default implementation
+    // that uses WebSockets will be used. See `defaultConnectionFactory` below.
+    connectionFactory?: CachingConnectionManagerFactory<unknown>,
+  ) {
+    this.backend = backend ?? getBackend();
+    this.idGenerator = idGenerator ?? new UuidStreamIdGenerator();
+    this.connectionFactory = connectionFactory ?? defaultConnectionFactory;
+  }
 }
 
 function getUuids<T extends ActionSchema>(
@@ -278,6 +314,7 @@ export function action<T extends ActionSchema>(
   action: T,
   options?: Options,
 ): ActionFromSchema<T> {
+  // If no options are provided, use the default options.
   if (options === undefined) {
     options = new Options(
       getBackend(),
