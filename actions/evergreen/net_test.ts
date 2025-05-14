@@ -1,10 +1,10 @@
 import 'jasmine';
 
-import {encode as b64encode} from '../../base64/index.js';
+import { encode as b64encode } from '../../base64/index.js';
 //import * as content from '../../content/index.js';
 import * as eg from './evergreen_spec.js';
-import {WebSocketConnectionManager} from './net.js';
-import {FakeWebSocket} from './test_utils.js';
+import { WebSocketConnectionManager } from './net.js';
+import { FakeWebSocket } from './test_utils.js';
 
 class TestSessionMessageCallback {
   capturedSessionMessages: eg.SessionMessage[] = [];
@@ -114,6 +114,7 @@ describe('WebSocketConnectionManager Test', () => {
   interface ValidServerResponseTestCase {
     description: string;
     eventType: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transform: (message: eg.SessionMessage) => any;
   }
 
@@ -150,7 +151,7 @@ describe('WebSocketConnectionManager Test', () => {
   // for these tests are identical, so we use a parameterized test to avoid
   // copy/paste. The difference between these test cases is the specific
   // format of the MessageEvent.data field in our simulated server response.
-  testCases.forEach(({description, eventType, transform}) => {
+  testCases.forEach(({ description, eventType, transform }) => {
     it(`Correctly parses server response ${description}`, async () => {
       // Connect the websocket
       const p = impl.connect();
@@ -179,6 +180,7 @@ describe('WebSocketConnectionManager Test', () => {
         ],
       };
       const serverResponse = new MessageEvent(eventType, {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         data: transform(sessionMessage),
       });
       fakeWebSocket.responses.push(serverResponse);

@@ -22,9 +22,7 @@ class LocalContext implements SessionContext {
 
     async write(id: string, chunk: Chunk, options?: SessionWriteOptions): Promise<void> {
         let pl = this.nodeMap.get(id);
-        if (pl === undefined) {
-            pl = this.createStream(id);
-        }
+        pl ??= this.createStream(id);
         const lastSeq = this.sequenceOrder.get(id);
         if (lastSeq === undefined) {
             throw new Error(`Sequence not found for ${id}`);
@@ -52,9 +50,7 @@ class LocalContext implements SessionContext {
     }
     read(id: string): AsyncIterable<Chunk> {
         let pl = this.nodeMap.get(id);
-        if (pl === undefined) {
-            pl = this.createStream(id);
-        }
+        pl ??= this.createStream(id);
         return pl;
     };
 
