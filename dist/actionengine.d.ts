@@ -19,16 +19,16 @@ type ReadableStream<T> = AsyncIterable<T> & PromiseLike<T[]>;
  */
 
 /** google.protobuf.Any proto mapping. */
-declare interface Any {
+declare interface Any$1 {
     readonly '@type': string;
     readonly [key: string]: undefined | null | string | number | boolean | object;
 }
 /** Metadata for a chunk. */
-declare interface ChunkMetadata {
+declare interface ChunkMetadata$1 {
     readonly mimetype?: Mimetype;
     readonly role?: string;
     readonly captureTime?: Date;
-    readonly experimental?: Any[];
+    readonly experimental?: Any$1[];
 }
 /** Structured mimetype */
 interface Mimetype {
@@ -40,7 +40,7 @@ interface Mimetype {
 }
 /** Chunk with metadata. */
 interface MetadataChunk {
-    readonly metadata?: ChunkMetadata;
+    readonly metadata?: ChunkMetadata$1;
 }
 /** Chunk with bytes. */
 interface DataChunk extends MetadataChunk {
@@ -53,32 +53,32 @@ interface RefChunk extends MetadataChunk {
     readonly ref: string;
 }
 /** Smallest unit of streamable information. */
-type Chunk = DataChunk | RefChunk;
-type Content<T extends Chunk = Chunk> = StreamItems<T>;
-type Input<T extends Chunk = Chunk> = ReadableStream<T>;
-type Output<T extends Chunk = Chunk> = WritableStream<T>;
-interface Pipe<T extends Chunk = Chunk> extends Input<T>, Output<T> {
+type Chunk$1 = DataChunk | RefChunk;
+type Content<T extends Chunk$1 = Chunk$1> = StreamItems<T>;
+type Input<T extends Chunk$1 = Chunk$1> = ReadableStream<T>;
+type Output<T extends Chunk$1 = Chunk$1> = WritableStream<T>;
+interface Pipe<T extends Chunk$1 = Chunk$1> extends Input<T>, Output<T> {
 }
 type Dict<T, U extends string = string> = Readonly<Record<U, T>>;
 type StreamTypeOfDict<T extends Dict<unknown>> = T extends Dict<infer U> ? U extends WritableStream<infer V> ? V : never : never;
-declare abstract class Action<T extends Dict<Input> = Dict<Input>, U extends Dict<Output> = Dict<Output>> {
+declare abstract class Action$1<T extends Dict<Input> = Dict<Input>, U extends Dict<Output> = Dict<Output>> {
     abstract run(session: Session, inputs: T, outputs: U): Promise<void>;
 }
-type ActionInputs$1<T extends Action> = T extends Action<infer U> ? U : never;
-type ActionOutputs$1<T extends Action> = T extends Action<never, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
-type ActionConstraints<T extends Action> = keyof ActionOutputs$1<T> & string;
+type ActionInputs$1<T extends Action$1> = T extends Action$1<infer U> ? U : never;
+type ActionOutputs$1<T extends Action$1> = T extends Action$1<never, infer V> ? Dict<ReadableStream<StreamTypeOfDict<V>>, keyof V & string> : never;
+type ActionConstraints<T extends Action$1> = keyof ActionOutputs$1<T> & string;
 /** Simplified transform of a unified Chunk stream. */
-type Processor<I extends string = string, O extends string = string, T extends Chunk = Chunk, U extends Chunk = Chunk> = (stream: AsyncIterable<[I, T]>) => AsyncGenerator<[O, U]>;
+type Processor<I extends string = string, O extends string = string, T extends Chunk$1 = Chunk$1, U extends Chunk$1 = Chunk$1> = (stream: AsyncIterable<[I, T]>) => AsyncGenerator<[O, U]>;
 /** Processor Chunks. */
-type ProcessorChunks<T extends string = string, U extends Chunk = Chunk> = AsyncIterable<[T, U]>;
+type ProcessorChunks<T extends string = string, U extends Chunk$1 = Chunk$1> = AsyncIterable<[T, U]>;
 /** Input dict to a processor. */
 type ProcessorInputs<T extends Processor> = T extends Processor<infer I, string, infer X> ? Record<I, AsyncIterable<X>> : never;
 /** Output dict to a processor. */
 type ProcessorOutputs<T extends Processor> = T extends Processor<never, infer O, never, infer Y> ? Record<O, ReadableStream<Y>> : never;
 type ProcessorConstraints<T extends Processor> = keyof ProcessorOutputs<T> & string;
 interface Session {
-    createPipe<T extends Chunk>(content?: Content<T>): Pipe<T>;
-    run<T extends Action, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs$1<T>, outputs: U[]): Pick<ActionOutputs$1<T>, U>;
+    createPipe<T extends Chunk$1>(content?: Content<T>): Pipe<T>;
+    run<T extends Action$1, U extends ActionConstraints<T> = ActionConstraints<T>>(action: T, inputs: ActionInputs$1<T>, outputs: U[]): Pick<ActionOutputs$1<T>, U>;
     run<T extends Processor<any, any>, U extends ProcessorConstraints<T> = ProcessorConstraints<T>>(processor: T, inputs: ProcessorInputs<T>, outputs: U[]): Pick<ProcessorOutputs<T>, U>;
     close(): Promise<void>;
 }
@@ -87,8 +87,8 @@ interface SessionWriteOptions {
     continued?: boolean;
 }
 interface SessionContext {
-    read(id: string): AsyncIterable<Chunk>;
-    write(id: string, chunk: Chunk, options?: SessionWriteOptions): Promise<void>;
+    read(id: string): AsyncIterable<Chunk$1>;
+    write(id: string, chunk: Chunk$1, options?: SessionWriteOptions): Promise<void>;
     error(id: string, reason?: string): void;
     close(): Promise<void>;
 }
@@ -129,31 +129,31 @@ declare function isDataChunk(maybeChunk: unknown): maybeChunk is DataChunk;
 /**
  * Type assertion the chunk is a chunk.
  */
-declare function isChunk(maybeChunk: unknown): maybeChunk is Chunk;
+declare function isChunk(maybeChunk: unknown): maybeChunk is Chunk$1;
 /**
  * Creates a json chunk.
  */
-declare function jsonChunk(json: any, metadata?: ChunkMetadata, replacer?: (this: any, key: string, value: any) => any): Chunk;
+declare function jsonChunk(json: any, metadata?: ChunkMetadata$1, replacer?: (this: any, key: string, value: any) => any): Chunk$1;
 /**
  * Converts a chunk to json.
  */
-declare function chunkJson(chunk: Chunk, reviver?: (this: any, key: string, value: any) => any): unknown;
+declare function chunkJson(chunk: Chunk$1, reviver?: (this: any, key: string, value: any) => any): unknown;
 /**
  * Creates a plain text chunk.
  */
-declare function textChunk(text: string, metadata?: ChunkMetadata): PlainTextChunk;
+declare function textChunk(text: string, metadata?: ChunkMetadata$1): PlainTextChunk;
 /**
  * Converts a chunk to text.
  */
-declare function chunkText(chunk: Chunk, throwOnError?: boolean): string;
+declare function chunkText(chunk: Chunk$1, throwOnError?: boolean): string;
 /**
  * Converts a chunk to a blob.
  */
-declare function chunkBlob(chunk: Chunk): Blob;
+declare function chunkBlob(chunk: Chunk$1): Blob;
 /**
  * Converts a image to a chunk.
  */
-declare function imageChunk(image: HTMLImageElement, metadata?: ChunkMetadata): Promise<Chunk>;
+declare function imageChunk(image: HTMLImageElement, metadata?: ChunkMetadata$1): Promise<Chunk$1>;
 /**
  * Returns a data url from a blob.
  */
@@ -161,23 +161,23 @@ declare function dataUrlFromBlob(blob: Blob): Promise<string>;
 /**
  * Converts a audio to a chunk.
  */
-declare function audioChunk(audio: HTMLAudioElement, metadata?: ChunkMetadata): Promise<Chunk>;
+declare function audioChunk(audio: HTMLAudioElement, metadata?: ChunkMetadata$1): Promise<Chunk$1>;
 /**
  * Converts a video to a chunk.
  */
-declare function videoChunk(video: HTMLVideoElement, metadata?: ChunkMetadata): Promise<Chunk>;
+declare function videoChunk(video: HTMLVideoElement, metadata?: ChunkMetadata$1): Promise<Chunk$1>;
 /**
  * Converts a fetch resource to a chunk.
  */
-declare function fetchChunk(resp: Promise<Response> | Response, metadata?: ChunkMetadata): Promise<Chunk>;
+declare function fetchChunk(resp: Promise<Response> | Response, metadata?: ChunkMetadata$1): Promise<Chunk$1>;
 /**
  * Converts a blob to a chunk.
  */
-declare function blobChunk(blob: Blob, metadata?: ChunkMetadata): Promise<Chunk>;
+declare function blobChunk(blob: Blob, metadata?: ChunkMetadata$1): Promise<Chunk$1>;
 /**
  * Returns a chunk with the given metadata.
  */
-declare function withMetadata<T extends Chunk>(chunk: T, metadata: ChunkMetadata): T;
+declare function withMetadata<T extends Chunk$1>(chunk: T, metadata: ChunkMetadata$1): T;
 /**
  * Returns true if the mimetype matches the given proto message type.
  */
@@ -193,7 +193,7 @@ declare const TEXT_MIME_TYPE: {
 /**
  * Type of a plain text chunk.
  */
-declare type PlainTextChunk = Chunk & {
+declare type PlainTextChunk = Chunk$1 & {
     readonly metadata: {
         readonly mimetype: {
             readonly type: 'text';
@@ -204,7 +204,7 @@ declare type PlainTextChunk = Chunk & {
 /**
  * Type of a text chunk.
  */
-declare type TextChunk = Chunk & {
+declare type TextChunk = Chunk$1 & {
     readonly metadata: {
         readonly mimetype: {
             readonly type: 'text';
@@ -214,7 +214,7 @@ declare type TextChunk = Chunk & {
 /**
  * Type of a audio chunk.
  */
-declare type AudioChunk = Chunk & {
+declare type AudioChunk = Chunk$1 & {
     readonly metadata: {
         readonly mimetype: {
             readonly type: 'audio';
@@ -224,7 +224,7 @@ declare type AudioChunk = Chunk & {
 /**
  * Type of a image chunk.
  */
-declare type ImageChunk = Chunk & {
+declare type ImageChunk = Chunk$1 & {
     readonly metadata: {
         readonly mimetype: {
             readonly type: 'image';
@@ -234,7 +234,7 @@ declare type ImageChunk = Chunk & {
 /**
  * Type of a video chunk.
  */
-declare type VideoChunk = Chunk & {
+declare type VideoChunk = Chunk$1 & {
     readonly metadata: {
         readonly mimetype: {
             readonly type: 'video';
@@ -252,7 +252,7 @@ declare type VideoChunk = Chunk & {
  * Factory for a template literal for constructing a prompt with specific
  * metadata.
  */
-declare function promptLiteralWithMetadata(metadataFn?: (chunk: Chunk) => ChunkMetadata): (strings: TemplateStringsArray, ...values: unknown[]) => Content;
+declare function promptLiteralWithMetadata(metadataFn?: (chunk: Chunk$1) => ChunkMetadata$1): (strings: TemplateStringsArray, ...values: unknown[]) => Content;
 /**
  * Template literal for constructing a prompt.
  */
@@ -276,7 +276,7 @@ declare const contextPrompt: (strings: TemplateStringsArray, ...values: unknown[
 /**
  * Transforms a Content to a new Content with the given metadata.
  */
-declare function promptWithMetadata(prompt: Content, metadata: ChunkMetadata): Content;
+declare function promptWithMetadata(prompt: Content, metadata: ChunkMetadata$1): Content;
 
 /**
  * @fileoverview Utilities for processing content chunks.
@@ -285,7 +285,7 @@ declare function promptWithMetadata(prompt: Content, metadata: ChunkMetadata): C
  */
 
 /** Converts Audio Chunks to a Media Stream. */
-declare function audioChunksToMediaStream(chunks: AsyncIterable<Chunk>): MediaStream;
+declare function audioChunksToMediaStream(chunks: AsyncIterable<Chunk$1>): MediaStream;
 /** Converts a Media Stream to audio chunks. */
 declare function mediaStreamToAudioChunks(media: MediaStream): AsyncGenerator<AudioChunk>;
 
@@ -296,7 +296,7 @@ declare function mediaStreamToAudioChunks(media: MediaStream): AsyncGenerator<Au
  */
 
 /** Converts image chunks to a Media Stream. */
-declare function imageChunksToMediaStream(chunks: AsyncIterable<Chunk>, options?: {
+declare function imageChunksToMediaStream(chunks: AsyncIterable<Chunk$1>, options?: {
     frameRate?: number;
 }): MediaStream;
 interface MediaToImageOptions {
@@ -433,7 +433,7 @@ declare namespace index_d$6 {
  */
 
 /** Well defined GenerateContent Action */
-declare abstract class GenerateContent$1 extends Action {
+declare abstract class GenerateContent$1 extends Action$1 {
     abstract run(session: Session, inputs: {
         prompt: Input;
     }, outputs: {
@@ -441,7 +441,7 @@ declare abstract class GenerateContent$1 extends Action {
     }): Promise<void>;
 }
 /** Well defined Live Action */
-declare abstract class Live$1 extends Action {
+declare abstract class Live$1 extends Action$1 {
     abstract run(session: Session, inputs: {
         audio?: Input<AudioChunk>;
         video?: Input<ImageChunk>;
@@ -461,7 +461,7 @@ declare abstract class Live$1 extends Action {
  */
 
 /** Reverse some content. */
-declare class ReverseContent extends Action {
+declare class ReverseContent extends Action$1 {
     run(session: Session, inputs: {
         prompt: Input;
     }, outputs: {
@@ -548,44 +548,6 @@ declare namespace index_d$4 {
 }
 
 /**
- * @fileoverview Evergreen interfaces.
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/** Named parameter spec. */
-declare interface NamedParameterSchema {
-    readonly name: string;
-    readonly description: string;
-    readonly type: readonly Mimetype[];
-}
-/** Action spec. */
-declare interface ActionSchema {
-    readonly name: string;
-    readonly inputs: readonly NamedParameterSchema[];
-    readonly outputs: readonly NamedParameterSchema[];
-}
-/** Action input names. */
-declare type ActionInputNames<T extends ActionSchema> = T['inputs'][number]['name'];
-/** Action inputs. */
-declare type ActionInputs<T extends ActionSchema> = Readonly<Record<ActionInputNames<T>, Input>>;
-/** Action output names. */
-declare type ActionOutputNames<T extends ActionSchema> = T['outputs'][number]['name'];
-/** Action outputs. */
-declare type ActionOutputs<T extends ActionSchema> = Readonly<Record<ActionOutputNames<T>, Output>>;
-declare type ActionFromSchema<T extends ActionSchema> = Action<ActionInputs<T>, ActionOutputs<T>>;
-
-/**
- * @fileoverview Evergreen actions.
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/** Sets the backend address wss://myapi/adddress?key=mykey. */
-declare function setBackend(address: string): void;
-declare function action<T extends ActionSchema>(uri: string, action: T): ActionFromSchema<T>;
-
-/**
  * @fileoverview Evergreen actions.
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -620,24 +582,314 @@ declare const GENERATE: {
 type GENERATE = typeof GENERATE;
 
 /**
+ * @fileoverview Evergreen actions.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/** ISO date timestamp. */
+declare type Timestamp = string;
+/** Any proto. */
+declare interface Any {
+    '@type': string;
+    [key: string]: undefined | null | string | number | boolean | object;
+}
+/** Session message. */
+declare interface SessionMessage {
+    nodeFragments?: NodeFragment[];
+    actions?: Action[];
+}
+/** Node. */
+declare interface Node {
+    id?: string;
+    childIds?: string[];
+    chunk?: Chunk;
+}
+/** Node fragment. */
+declare interface NodeFragment {
+    id?: string;
+    seq?: number;
+    continued?: boolean;
+    childIds?: string[];
+    chunkFragment?: Chunk;
+}
+/** Chunk. */
+declare interface Chunk {
+    metadata?: ChunkMetadata;
+    ref?: string;
+    data?: string;
+}
+/** Chunk metadata. */
+declare interface ChunkMetadata {
+    mimetype?: string;
+    role?: string;
+    originalFileName?: string;
+    captureTime?: Timestamp;
+    experimental?: Any[];
+}
+/** Named parameter. */
+declare interface NamedParameter {
+    name?: string;
+    id?: string;
+}
+/** Target spec. */
+declare interface TargetSpec {
+    id?: string;
+}
+/** Action. */
+declare interface Action {
+    targetSpec: TargetSpec;
+    name: string;
+    inputs?: NamedParameter[];
+    outputs?: NamedParameter[];
+    configs?: Any[];
+}
+
+/**
+ * @fileoverview Evergreen interfaces.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/** Named parameter spec. */
+declare interface NamedParameterSchema {
+    readonly name: string;
+    readonly description: string;
+    readonly type: readonly Mimetype[];
+}
+/** Action spec. */
+declare interface ActionSchema {
+    readonly name: string;
+    readonly inputs: readonly NamedParameterSchema[];
+    readonly outputs: readonly NamedParameterSchema[];
+}
+/** Action input names. */
+declare type ActionInputNames<T extends ActionSchema> = T['inputs'][number]['name'];
+/** Action inputs. */
+declare type ActionInputs<T extends ActionSchema> = Readonly<Record<ActionInputNames<T>, Input>>;
+/** Action output names. */
+declare type ActionOutputNames<T extends ActionSchema> = T['outputs'][number]['name'];
+/** Action outputs. */
+declare type ActionOutputs<T extends ActionSchema> = Readonly<Record<ActionOutputNames<T>, Output>>;
+declare type ActionFromSchema<T extends ActionSchema> = Action$1<ActionInputs<T>, ActionOutputs<T>>;
+
+/**
+ * @fileoverview Abstractions for the network layer required to execute
+ * Evergreen actions on remote servers from a web browser client. As well as
+ * a default implementation that uses WebSockets for network transport.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * Interface for callback functions that are invoked by the
+ * `ConnectionManager` when a `SessionMessage` is received from the remote
+ * server.
+ */
+declare interface SessionMessageCallbackFn {
+    (message: SessionMessage): void;
+}
+/**
+ * `ConnectionManager` is the interface between Evergreen action execution
+ * methods defined in `run.ts` and the network transport used to communicate
+ * with the remote server. `T` is the type of response message expected from
+ * the remote server.
+ */
+declare interface ConnectionManager<T> {
+    /**
+     * Registers a `SesionMessageCallbackFn` to be invoked when a `SessionMessage`
+     * is received from the remote server. If multiple callbacks are registered
+     * then they will each be invoked for each `SessionMessage` received.
+     */
+    registerSessionMessageCallback(callback: SessionMessageCallbackFn): void;
+    /**
+     * Establish a connection to the remote server. This is a no-op if the
+     * connection is already established.
+     */
+    connect(): Promise<void>;
+    /**
+     * End the connection to the remote server. This is a no-op if the connection
+     * is already closed or was never established.
+     */
+    disconnect(): void;
+    /**
+     * Send a message to the remote server.
+     */
+    send(message: SessionMessage): void;
+    /**
+     * Callback that is invoked when a response is received from the
+     * remote server. Note that implementers of this interface must ensure
+     * that this callback is invoked e.g. by registering an event listener
+     * on the underlying network connection.
+     */
+    onServerResponse(message: T): Promise<void>;
+    /**
+     * Callback that is invoked when an error is received from the remote server.
+     * Note that implementers of this interface must ensure that this callback is
+     * invoked e.g. by registering an event listener on the underlying network
+     * connection.
+     */
+    onError(event: any): void;
+    /**
+     * Callback that is invoked when the connection is closed. Note that
+     * implementers of this interface must ensure that this callback is invoked
+     * e.g. by registering an event listener on the underlying network connection.
+     */
+    onClose(event: any): void;
+    /**
+     * Returns `true` if the connection is considered "valid" and `false`
+     * otherwise. The exact semantics of valid and invalid are up to the
+     * interface implementer. A connection which is invalid will be disposed
+     * of and a new connection will be created to replace it.
+     */
+    isValidConnection(): boolean;
+}
+/**
+ * Abstract base implementation of the `ConnectionManager` interface. This
+ * base class provides a default implementation of the `onServerResponse`
+ * method. The default implementation converts the raw server response into
+ * a `SessionMessage` object and notifies any registered callbacks of the newly
+ * available `SessionMessage`. Implementers must provide their own concrete
+ * implementation of the `convertServerResponseToSessionMessage` method which
+ * performs the conversion from the raw server response to a `SessionMessage`
+ * object.
+ */
+declare abstract class AbstractBaseConnectionManager<T> implements ConnectionManager<T> {
+    private callbacks;
+    /**
+     * Method defined in interface. Registers the provided `callback` in an
+     * internal array of callbacks. Each callback will be invoked when a new
+     * `SessionMessage` is received from the remote server.
+     */
+    registerSessionMessageCallback(callback: SessionMessageCallbackFn): void;
+    /**
+     * Method defined in interface. Implementers must override this method with
+     * a concrete implementation. Refer to interface documentation for more
+     * details.
+     */
+    abstract connect(): Promise<void>;
+    /**
+     * Method defined in interface. Implementers must override this method with
+     * a concrete implementation. Refer to interface documentation for more
+     * details.
+     */
+    abstract disconnect(): void;
+    /**
+     * Method defined in interface. Implementers must override this method with
+     * a concrete implementation. Refer to interface documentation for more
+     * details.
+     */
+    abstract send(message: SessionMessage): void;
+    /**
+     * Method defined in interface. Implementers must override this method with
+     * a concrete implementation. Refer to interface documentation for more
+     * details.
+     */
+    abstract onError(event: any): void;
+    /**
+     * Method defined in interface. Implementers must override this method with
+     * a concrete implementation. Refer to interface documentation for more
+     * details.
+     */
+    abstract onClose(event: any): void;
+    /**
+     * Method defined in interface. Implementers must override this method with
+     * a concrete implementation. Refer to interface documentation for more
+     * details.
+     */
+    abstract isValidConnection(): boolean;
+    /**
+     * Default implementation of the `onServerResponse` method. This method
+     * converts the raw server response into a `SessionMessage` object and emits
+     * it via the registered callbacks. Implementers must provide their
+     * own concrete implementation of the `convertServerResponseToSessionMessage`
+     * method below.
+     */
+    onServerResponse(event: T): Promise<void>;
+    /**
+     * Converts the raw server response into a `SessionMessage` object. If the
+     * response does not represent a valid `SessionMessage` then either an
+     * error should be raised or `undefined` should be returned. If the response
+     * is expected but simply doesn't represent a `SessionMessage`, e.g. the
+     * response represents some network control metadata, then the appropriate
+     * behavior is to return `undefined`. However, if the response is not
+     * expected and represents an error, then an error should be raised.
+     */
+    protected abstract convertServerResponseToSessionMessage(event: T): Promise<SessionMessage | undefined>;
+}
+/**
+ * Factory for creating `ConnectionManager`s. This factory caches
+ * `ConnectionManager`s for a given `Session`. Previously cached
+ * `ConnectionManager`s are only returned if they are considered "valid".
+ * Implementers of the `ConnectionManager` interface must define what it means
+ * for a connection to be valid or invalid. Typically this will be based on
+ * the state of the underlying network connection, e.g. a `WebSocket` in the
+ * `WebSocket.OPEN` state would be considered valid and all other states would
+ * be considered invalid.
+ */
+declare class CachingConnectionManagerFactory<T> {
+    private readonly connectionMap;
+    private readonly createManagerFn;
+    constructor(createManagerFn: (backendUrl: string) => ConnectionManager<T>);
+    getConnection(session: Session, backendUrl: string): ConnectionManager<T>;
+}
+
+/**
+ * @fileoverview Evergreen actions.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+interface StreamIdGenerator {
+    generateStreamId(streamName: string): string;
+}
+declare class Options {
+    readonly backend: string;
+    readonly idGenerator: StreamIdGenerator;
+    readonly connectionFactory: CachingConnectionManagerFactory<unknown>;
+    constructor(backend: string, idGenerator: StreamIdGenerator, connectionFactory: CachingConnectionManagerFactory<unknown>);
+}
+/** Sets the backend address wss://myapi/address?key=mykey. */
+declare function setBackend(address: string): void;
+declare function action<T extends ActionSchema>(uri: string, action: T, options?: Options): ActionFromSchema<T>;
+
+/**
  * @fileoverview Evergreen.
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
+type index_d$3_AbstractBaseConnectionManager<T> = AbstractBaseConnectionManager<T>;
+declare const index_d$3_AbstractBaseConnectionManager: typeof AbstractBaseConnectionManager;
+type index_d$3_Action = Action;
 type index_d$3_ActionFromSchema<T extends ActionSchema> = ActionFromSchema<T>;
 type index_d$3_ActionInputNames<T extends ActionSchema> = ActionInputNames<T>;
 type index_d$3_ActionInputs<T extends ActionSchema> = ActionInputs<T>;
 type index_d$3_ActionOutputNames<T extends ActionSchema> = ActionOutputNames<T>;
 type index_d$3_ActionOutputs<T extends ActionSchema> = ActionOutputs<T>;
 type index_d$3_ActionSchema = ActionSchema;
+type index_d$3_Any = Any;
+type index_d$3_CachingConnectionManagerFactory<T> = CachingConnectionManagerFactory<T>;
+declare const index_d$3_CachingConnectionManagerFactory: typeof CachingConnectionManagerFactory;
+type index_d$3_Chunk = Chunk;
+type index_d$3_ChunkMetadata = ChunkMetadata;
+type index_d$3_ConnectionManager<T> = ConnectionManager<T>;
 type index_d$3_GENERATE = GENERATE;
+type index_d$3_NamedParameter = NamedParameter;
 type index_d$3_NamedParameterSchema = NamedParameterSchema;
+type index_d$3_Node = Node;
+type index_d$3_NodeFragment = NodeFragment;
+type index_d$3_Options = Options;
+declare const index_d$3_Options: typeof Options;
+type index_d$3_SessionMessage = SessionMessage;
+type index_d$3_SessionMessageCallbackFn = SessionMessageCallbackFn;
+type index_d$3_StreamIdGenerator = StreamIdGenerator;
+type index_d$3_TargetSpec = TargetSpec;
+type index_d$3_Timestamp = Timestamp;
 declare const index_d$3_action: typeof action;
 declare const index_d$3_setBackend: typeof setBackend;
 declare namespace index_d$3 {
-  export { index_d$3_action as action, index_d$3_setBackend as setBackend };
-  export type { index_d$3_ActionFromSchema as ActionFromSchema, index_d$3_ActionInputNames as ActionInputNames, index_d$3_ActionInputs as ActionInputs, index_d$3_ActionOutputNames as ActionOutputNames, index_d$3_ActionOutputs as ActionOutputs, index_d$3_ActionSchema as ActionSchema, index_d$3_GENERATE as GENERATE, index_d$3_NamedParameterSchema as NamedParameterSchema };
+  export { index_d$3_AbstractBaseConnectionManager as AbstractBaseConnectionManager, index_d$3_CachingConnectionManagerFactory as CachingConnectionManagerFactory, index_d$3_Options as Options, index_d$3_action as action, index_d$3_setBackend as setBackend };
+  export type { index_d$3_Action as Action, index_d$3_ActionFromSchema as ActionFromSchema, index_d$3_ActionInputNames as ActionInputNames, index_d$3_ActionInputs as ActionInputs, index_d$3_ActionOutputNames as ActionOutputNames, index_d$3_ActionOutputs as ActionOutputs, index_d$3_ActionSchema as ActionSchema, index_d$3_Any as Any, index_d$3_Chunk as Chunk, index_d$3_ChunkMetadata as ChunkMetadata, index_d$3_ConnectionManager as ConnectionManager, index_d$3_GENERATE as GENERATE, index_d$3_NamedParameter as NamedParameter, index_d$3_NamedParameterSchema as NamedParameterSchema, index_d$3_Node as Node, index_d$3_NodeFragment as NodeFragment, index_d$3_SessionMessage as SessionMessage, index_d$3_SessionMessageCallbackFn as SessionMessageCallbackFn, index_d$3_StreamIdGenerator as StreamIdGenerator, index_d$3_TargetSpec as TargetSpec, index_d$3_Timestamp as Timestamp };
 }
 
 /**
@@ -695,5 +947,5 @@ declare namespace index_d {
   };
 }
 
-export { Action, index_d$2 as actions, index_d$1 as async, index_d as base64, index_d$8 as content, index_d$6 as sessions };
-export type { ActionConstraints, ActionInputs$1 as ActionInputs, ActionOutputs$1 as ActionOutputs, Any, Chunk, ChunkMetadata, Content, DataChunk, Dict, Input, MetadataChunk, Mimetype, Output, Pipe, Processor, ProcessorChunks, ProcessorConstraints, ProcessorInputs, ProcessorOutputs, RefChunk, Session, SessionContext, SessionContextMiddleware, SessionProvider, SessionWriteOptions };
+export { Action$1 as Action, index_d$2 as actions, index_d$1 as async, index_d as base64, index_d$8 as content, index_d$6 as sessions };
+export type { ActionConstraints, ActionInputs$1 as ActionInputs, ActionOutputs$1 as ActionOutputs, Any$1 as Any, Chunk$1 as Chunk, ChunkMetadata$1 as ChunkMetadata, Content, DataChunk, Dict, Input, MetadataChunk, Mimetype, Output, Pipe, Processor, ProcessorChunks, ProcessorConstraints, ProcessorInputs, ProcessorOutputs, RefChunk, Session, SessionContext, SessionContextMiddleware, SessionProvider, SessionWriteOptions };
