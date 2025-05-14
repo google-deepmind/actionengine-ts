@@ -308,6 +308,15 @@ var TEXT_MIME_TYPE = {
   subtype: "plain"
 };
 
+// stream/index.ts
+var stream_exports = {};
+__export(stream_exports, {
+  awaitableAsyncIterable: () => awaitableAsyncIterable,
+  createStream: () => createStream,
+  isAsyncIterable: () => isAsyncIterable,
+  thenableAsyncIterable: () => thenableAsyncIterable
+});
+
 // stream/stream.ts
 if (typeof Promise.withResolvers === "undefined") {
   Promise.withResolvers = () => {
@@ -493,6 +502,11 @@ function thenableAsyncIterable(onfulfilled, onrejected) {
   };
   return aggregate().then(onfulfilled, onrejected);
 }
+function awaitableAsyncIterable(iter) {
+  const then = iter;
+  then.then = thenableAsyncIterable;
+  return then;
+}
 
 // content/prompt.ts
 function transformToContent(value, metadataFn) {
@@ -549,9 +563,7 @@ function promptLiteralWithMetadata(metadataFn) {
     for (let i = 0; i < l; i++) {
       str += strings[i];
       let value = values[i];
-      if (value === void 0 || value === null) {
-        value = "";
-      }
+      value ??= "";
       if (typeof value === "string") {
         str += value;
       } else {
@@ -692,7 +704,7 @@ function audioChunksToMediaStream(chunks) {
   }
   ;
   let [ctx, dest] = nextContext();
-  async function read2() {
+  async function read() {
     try {
       let nextStartTime = 0;
       for await (const chunk of chunks) {
@@ -728,7 +740,7 @@ function audioChunksToMediaStream(chunks) {
       }
     }
   }
-  void read2();
+  void read();
   return media;
 }
 async function* mediaStreamToAudioChunks(media) {
@@ -798,7 +810,7 @@ function imageChunksToMediaStream(chunks, options) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   let first = true;
-  async function read2() {
+  async function read() {
     try {
       for await (const c of chunks) {
         if (c.metadata?.mimetype?.type !== "image") {
@@ -824,7 +836,7 @@ function imageChunksToMediaStream(chunks, options) {
       });
     }
   }
-  void read2();
+  void read();
   const stream = canvas.captureStream(options?.frameRate);
   return stream;
 }
@@ -1050,9 +1062,7 @@ var LocalContext = class {
   }
   async write(id, chunk, options) {
     let pl = this.nodeMap.get(id);
-    if (pl === void 0) {
-      pl = this.createStream(id);
-    }
+    pl ??= this.createStream(id);
     const lastSeq = this.sequenceOrder.get(id);
     if (lastSeq === void 0) {
       throw new Error(`Sequence not found for ${id}`);
@@ -1079,9 +1089,7 @@ var LocalContext = class {
   }
   read(id) {
     let pl = this.nodeMap.get(id);
-    if (pl === void 0) {
-      pl = this.createStream(id);
-    }
+    pl ??= this.createStream(id);
     return pl;
   }
   async close() {
@@ -1454,49 +1462,122 @@ var docToText = async function* (chunks) {
 // actions/evergreen/index.ts
 var evergreen_exports = {};
 __export(evergreen_exports, {
+  AbstractBaseConnectionManager: () => AbstractBaseConnectionManager,
+  CachingConnectionManagerFactory: () => CachingConnectionManagerFactory,
   GENERATE: () => GENERATE,
+  Options: () => Options,
   action: () => action,
   setBackend: () => setBackend
 });
 
-// actions/evergreen/run.ts
-var socketMap = /* @__PURE__ */ new Map();
-async function getSocket(session) {
-  let socket = socketMap.get(session);
-  if (socket && socket.readyState !== WebSocket.OPEN) {
-    socket = void 0;
-    socketMap.delete(session);
+// actions/evergreen/actions.ts
+var GENERATE = {
+  name: "GENERATE",
+  inputs: [
+    {
+      name: "prompt",
+      description: "The prompt to generate from",
+      type: [
+        { type: "text", subtype: "plain" },
+        { type: "image", subtype: "png" }
+      ]
+    }
+  ],
+  outputs: [
+    {
+      name: "response",
+      description: "The response from the model",
+      type: [
+        { type: "text", subtype: "plain" },
+        { type: "image", subtype: "png" }
+      ]
+    }
+  ]
+};
+
+// actions/evergreen/net.ts
+var AbstractBaseConnectionManager = class {
+  callbacks = [];
+  /**
+   * Method defined in interface. Registers the provided `callback` in an
+   * internal array of callbacks. Each callback will be invoked when a new
+   * `SessionMessage` is received from the remote server.
+   */
+  registerSessionMessageCallback(callback) {
+    this.callbacks.push(callback);
   }
-  if (!socket) {
-    const s = new WebSocket(getBackend());
-    s.binaryType = "blob";
+  /**
+   * Default implementation of the `onServerResponse` method. This method
+   * converts the raw server response into a `SessionMessage` object and emits
+   * it via the registered callbacks. Implementers must provide their
+   * own concrete implementation of the `convertServerResponseToSessionMessage`
+   * method below.
+   */
+  async onServerResponse(event) {
+    const message = await this.convertServerResponseToSessionMessage(event);
+    if (message) {
+      for (const callback of this.callbacks) {
+        callback(message);
+      }
+    }
+  }
+};
+function WebSocketConnectionManagerFactoryFn(backendUrl) {
+  return WebSocketConnectionManager.createWithUrl(backendUrl);
+}
+var WebSocketConnectionManager = class _WebSocketConnectionManager extends AbstractBaseConnectionManager {
+  socket;
+  constructor(backendUrl, socket) {
+    super();
+    if (backendUrl) {
+      this.socket = new WebSocket(backendUrl);
+    } else if (socket) {
+      this.socket = socket;
+    } else {
+      throw new Error("Either backendUrl or socket must be provided.");
+    }
+    this.socket.binaryType = "blob";
+  }
+  static createWithUrl(backendUrl) {
+    return new _WebSocketConnectionManager(backendUrl);
+  }
+  static createWithSocket(socket) {
+    return new _WebSocketConnectionManager(void 0, socket);
+  }
+  isValidConnection() {
+    return this.socket.readyState === WebSocket.OPEN;
+  }
+  async connect() {
+    if (this.isValidConnection()) {
+      console.info("WebSocket already connected");
+      return;
+    }
     await new Promise((resolve, reject) => {
-      s.addEventListener("open", () => {
-        s.removeEventListener("error", reject);
-        s.removeEventListener("close", reject);
+      this.socket.addEventListener("open", () => {
+        this.socket.removeEventListener("error", reject);
+        this.socket.removeEventListener("close", reject);
         resolve();
       });
-      s.addEventListener("error", reject);
-      s.addEventListener("close", reject);
+      this.socket.addEventListener("error", reject);
+      this.socket.addEventListener("close", reject);
     });
-    socket = s;
-    socketMap.set(session, s);
+    this.socket.onmessage = async (event) => {
+      await this.onServerResponse(event);
+    };
+    this.socket.onerror = (event) => {
+      this.onError(event);
+    };
+    this.socket.onclose = (event) => {
+      this.onClose(event);
+    };
   }
-  return socket;
-}
-function getUuids(inputs, outputs) {
-  const outputIds = {};
-  for (const output of Object.keys(outputs)) {
-    outputIds[output] = crypto.randomUUID();
+  disconnect() {
+    this.socket.close();
   }
-  const inputIds = {};
-  for (const input of Object.keys(inputs)) {
-    inputIds[input] = crypto.randomUUID();
+  send(message) {
+    this.socket.send(JSON.stringify(message));
   }
-  return [inputIds, outputIds];
-}
-function handleMessages(socket, callbacks) {
-  socket.onmessage = async (event) => {
+  async convertServerResponseToSessionMessage(event) {
     let message;
     switch (event.type) {
       case "text":
@@ -1505,34 +1586,84 @@ function handleMessages(socket, callbacks) {
         const data = event.data;
         if (data instanceof Blob) {
           const buf = await data.arrayBuffer();
-          message = JSON.parse(new TextDecoder().decode(new Uint8Array(buf)));
+          message = JSON.parse(
+            new TextDecoder().decode(new Uint8Array(buf))
+          );
         } else if (data instanceof ArrayBuffer) {
-          message = JSON.parse(new TextDecoder().decode(new Uint8Array(data)));
+          message = JSON.parse(
+            new TextDecoder().decode(new Uint8Array(data))
+          );
         } else if (typeof data === "string") {
           message = JSON.parse(data);
         } else {
           throw new Error(
-            `Unsupported type ${socket.binaryType} ${typeof data}`
+            `Unsupported type ${this.socket.binaryType} ${typeof data}`
           );
         }
         break;
       default:
         throw new Error(`Unknown message type ${event.type}`);
     }
-    callbacks.onmessage(message);
-  };
-  socket.onerror = (event) => {
-    console.info("Websocket error", event, socket);
-    callbacks.onerror(event);
-  };
-  socket.onclose = (event) => {
+    return message;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onError(event) {
+    console.info("Websocket error", event, this.socket);
+  }
+  onClose(event) {
     console.info(
       `Websocket closed: ${event.reason} ${event.code}`,
       event,
-      socket
+      this.socket
     );
-    callbacks.onclose(event);
-  };
+  }
+};
+var CachingConnectionManagerFactory = class {
+  connectionMap = /* @__PURE__ */ new Map();
+  createManagerFn;
+  constructor(createManagerFn) {
+    this.createManagerFn = createManagerFn;
+  }
+  getConnection(session, backendUrl) {
+    let manager = this.connectionMap.get(session);
+    if (manager) {
+      if (manager.isValidConnection()) {
+        return manager;
+      } else {
+        manager = void 0;
+        this.connectionMap.delete(session);
+      }
+    }
+    manager = this.createManagerFn(backendUrl);
+    this.connectionMap.set(session, manager);
+    return manager;
+  }
+};
+
+// actions/evergreen/run.ts
+var UuidStreamIdGenerator = class {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  generateStreamId(streamName) {
+    return crypto.randomUUID();
+  }
+};
+var Options = class {
+  constructor(backend, idGenerator, connectionFactory) {
+    this.backend = backend;
+    this.idGenerator = idGenerator;
+    this.connectionFactory = connectionFactory;
+  }
+};
+function getUuids(inputs, outputs, idGenerator) {
+  const outputIds = {};
+  for (const outputKey of Object.keys(outputs)) {
+    outputIds[outputKey] = idGenerator.generateStreamId(outputKey);
+  }
+  const inputIds = {};
+  for (const inputKey of Object.keys(inputs)) {
+    inputIds[inputKey] = idGenerator.generateStreamId(inputKey);
+  }
+  return [inputIds, outputIds];
 }
 async function writeToOutputs(msg, outputIds, outputs, childIdMapping, pending) {
   for (const nodeFragment of msg.nodeFragments ?? []) {
@@ -1587,7 +1718,7 @@ async function writeToOutputs(msg, outputIds, outputs, childIdMapping, pending) 
     }
   }
 }
-function sendAction(socket, uri, action2, inputIds, outputIds) {
+function sendAction(connectionManager, uri, action2, inputIds, outputIds) {
   const actionMessage = {
     actions: [
       {
@@ -1610,9 +1741,9 @@ function sendAction(socket, uri, action2, inputIds, outputIds) {
       }
     ]
   };
-  socket.send(JSON.stringify(actionMessage));
+  connectionManager.send(actionMessage);
 }
-function read(socket, inputs, inputIds) {
+function sendInput(connectionManager, inputs, inputIds) {
   for (const [k, v] of Object.entries(inputs)) {
     void (async (key, stream) => {
       let seq = 0;
@@ -1635,7 +1766,7 @@ function read(socket, inputs, inputIds) {
             }
           ]
         };
-        socket.send(JSON.stringify(dataMsg));
+        connectionManager.send(dataMsg);
       }
       const closeMsg = {
         nodeFragments: [
@@ -1646,42 +1777,47 @@ function read(socket, inputs, inputIds) {
           }
         ]
       };
-      socket.send(JSON.stringify(closeMsg));
+      connectionManager.send(closeMsg);
     })(k, v);
   }
 }
-async function runEvergreenAction(session, uri, action2, inputs, outputs) {
-  const socket = await getSocket(session);
-  const [inputIds, outputIds] = getUuids(inputs, outputs);
+async function runEvergreenAction(session, uri, action2, inputs, outputs, options) {
+  const connectionManager = options.connectionFactory.getConnection(
+    session,
+    options.backend
+  );
+  await connectionManager.connect();
+  const [inputIds, outputIds] = getUuids(inputs, outputs, options.idGenerator);
   const childIdMapping = {};
   for (const output of Object.keys(outputIds)) {
     childIdMapping[outputIds[output]] = output;
   }
   const pending = {};
-  handleMessages(socket, {
-    onmessage: (msg) => {
-      void writeToOutputs(msg, outputIds, outputs, childIdMapping, pending);
-    },
-    onerror: (event) => {
-      console.log("error", event);
-    },
-    onclose: (event) => {
-      console.log("close", event);
-    }
+  connectionManager.registerSessionMessageCallback((msg) => {
+    void writeToOutputs(msg, outputIds, outputs, childIdMapping, pending);
   });
-  sendAction(socket, uri, action2, inputIds, outputIds);
-  read(socket, inputs, inputIds);
+  sendAction(connectionManager, uri, action2, inputIds, outputIds);
+  sendInput(connectionManager, inputs, inputIds);
 }
 var EvergreenAction = class extends Action {
-  constructor(uri, action2) {
+  constructor(uri, action2, options) {
     super();
     this.uri = uri;
     this.action = action2;
+    this.options = options;
   }
   async run(session, inputs, outputs) {
-    await runEvergreenAction(session, this.uri, this.action, inputs, outputs);
+    await runEvergreenAction(
+      session,
+      this.uri,
+      this.action,
+      inputs,
+      outputs,
+      this.options
+    );
   }
 };
+var defaultConnectionFactory = new CachingConnectionManagerFactory(WebSocketConnectionManagerFactoryFn);
 var lazyBackend = void 0;
 function setBackend(address) {
   lazyBackend = address;
@@ -1692,41 +1828,22 @@ function getBackend() {
   }
   return lazyBackend;
 }
-function action(uri, action2) {
-  return new EvergreenAction(uri, action2);
+function action(uri, action2, options) {
+  options ??= new Options(
+    getBackend(),
+    new UuidStreamIdGenerator(),
+    defaultConnectionFactory
+  );
+  return new EvergreenAction(uri, action2, options);
 }
-
-// actions/evergreen/actions.ts
-var GENERATE = {
-  name: "GENERATE",
-  inputs: [
-    {
-      name: "prompt",
-      description: "The prompt to generate from",
-      type: [
-        { type: "text", subtype: "plain" },
-        { type: "image", subtype: "png" }
-      ]
-    }
-  ],
-  outputs: [
-    {
-      name: "response",
-      description: "The response from the model",
-      type: [
-        { type: "text", subtype: "plain" },
-        { type: "image", subtype: "png" }
-      ]
-    }
-  ]
-};
 export {
   Action,
   actions_exports as actions,
   async_exports as async,
   base64_exports as base64,
   content_exports as content,
-  sessions_exports as sessions
+  sessions_exports as sessions,
+  stream_exports as stream
 };
 /**
  * @fileoverview Index export.
@@ -1770,6 +1887,13 @@ export {
  */
 /**
  * @fileoverview Evergreen interfaces.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
+ * @fileoverview Abstractions for the network layer required to execute
+ * Evergreen actions on remote servers from a web browser client. As well as
+ * a default implementation that uses WebSockets for network transport.
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */

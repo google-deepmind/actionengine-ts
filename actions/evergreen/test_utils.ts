@@ -1,8 +1,13 @@
+/* eslint-disable @typescript-eslint/no-useless-constructor */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-empty-function */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * @fileoverview Test utilities for this package.
  */
 
-import {SessionMessage} from './evergreen_spec.js';
+import { SessionMessage } from './evergreen_spec.js';
 
 /**
  * A fake implementation of the `WebSocket` class for testing purposes.
@@ -32,9 +37,9 @@ export class FakeWebSocket {
 
   onopen: ((event: Event) => void) | null = null;
 
-  onclose(event: CloseEvent) {}
+  onclose(event: CloseEvent) { }
 
-  onerror(event: Event) {}
+  onerror(event: Event) { }
 
   onmessage(event: MessageEvent): Promise<void> {
     return Promise.resolve();
@@ -60,11 +65,11 @@ export class FakeWebSocket {
       // the onmessage handler is async. We expose the promise that results
       // from the onmessage function call so that tests can wait for the
       // response to be handled before proceeding.
-      const promises: Array<Promise<void>> = [];
+      const promises: Promise<void>[] = [];
       for (const response of this.responses) {
         promises.push(this.onmessage(response));
       }
-      this.onMessageCompletePromise = Promise.all(promises).then(() => {});
+      this.onMessageCompletePromise = Promise.all(promises).then(() => { });
     }
   }
 
@@ -104,10 +109,10 @@ export class FakeWebSocket {
         this.onopen = null;
         break;
       case 'close':
-        this.onclose = (event: CloseEvent) => {};
+        this.onclose = (event: CloseEvent) => { };
         break;
       case 'error':
-        this.onerror = (event: Event) => {};
+        this.onerror = (event: Event) => { };
         break;
       case 'message':
         this.onmessage = (event: MessageEvent): Promise<void> => {
@@ -119,7 +124,7 @@ export class FakeWebSocket {
     }
   }
   dispatchEvent<K extends keyof WebSocketEventMap>(
-    event: WebSocketEventMap[K] & {type: K},
+    event: WebSocketEventMap[K] & { type: K },
   ): boolean {
     switch (event.type) {
       case 'open':
@@ -144,7 +149,7 @@ export class FakeWebSocket {
   }
 
   // Required by the interface but has no effect in this fake implementation.
-  constructor(url: string | URL, protocols?: string | string[] | undefined) {}
+  constructor(url: string | URL, protocols?: string | string[]) { }
 
   binaryType: BinaryType = 'blob';
 

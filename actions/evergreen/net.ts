@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Session} from '../../interfaces.js';
+import { Session } from '../../interfaces.js';
 
 import * as eg from './evergreen_spec.js';
 
@@ -15,9 +15,7 @@ import * as eg from './evergreen_spec.js';
  * `ConnectionManager` when a `SessionMessage` is received from the remote
  * server.
  */
-export declare interface SessionMessageCallbackFn {
-  (message: eg.SessionMessage): void;
-}
+export type SessionMessageCallbackFn = (message: eg.SessionMessage) => void;
 
 /**
  * `ConnectionManager` is the interface between Evergreen action execution
@@ -64,6 +62,7 @@ export declare interface ConnectionManager<T> {
    * invoked e.g. by registering an event listener on the underlying network
    * connection.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onError(event: any): void;
 
   /**
@@ -71,6 +70,7 @@ export declare interface ConnectionManager<T> {
    * implementers of this interface must ensure that this callback is invoked
    * e.g. by registering an event listener on the underlying network connection.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onClose(event: any): void;
 
   /**
@@ -93,8 +93,7 @@ export declare interface ConnectionManager<T> {
  * object.
  */
 export abstract class AbstractBaseConnectionManager<T>
-  implements ConnectionManager<T>
-{
+  implements ConnectionManager<T> {
   private callbacks: SessionMessageCallbackFn[] = [];
 
   /**
@@ -132,6 +131,7 @@ export abstract class AbstractBaseConnectionManager<T>
    * a concrete implementation. Refer to interface documentation for more
    * details.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abstract onError(event: any): void;
 
   /**
@@ -139,6 +139,7 @@ export abstract class AbstractBaseConnectionManager<T>
    * a concrete implementation. Refer to interface documentation for more
    * details.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abstract onClose(event: any): void;
 
   /**
@@ -238,10 +239,10 @@ export class WebSocketConnectionManager extends AbstractBaseConnectionManager<Me
     this.socket.onmessage = async (event: MessageEvent) => {
       await this.onServerResponse(event);
     };
-    this.socket.onerror = (event: any) => {
+    this.socket.onerror = (event: Event) => {
       this.onError(event);
     };
-    this.socket.onclose = (event: any) => {
+    this.socket.onclose = (event: CloseEvent) => {
       this.onClose(event);
     };
   }
@@ -287,11 +288,12 @@ export class WebSocketConnectionManager extends AbstractBaseConnectionManager<Me
     return message;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   override onError(event: any) {
     console.info('Websocket error', event, this.socket);
   }
 
-  override onClose(event: any) {
+  override onClose(event: CloseEvent) {
     // See
     // https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent/code#value
     // for mapping from code to explanation.
