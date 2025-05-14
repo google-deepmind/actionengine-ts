@@ -1,5 +1,7 @@
 /**
  * @fileoverview Test utilities for this package.
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
  */
 /**
  * A fake implementation of the `WebSocket` class for testing purposes.
