@@ -693,7 +693,6 @@ declare type ActionFromSchema<T extends ActionSchema> = Action$1<ActionInputs<T>
  * server.
  */
 type SessionMessageCallbackFn = (message: SessionMessage) => void;
-
 /**
  * `ConnectionManager` is the interface between Evergreen action execution
  * methods defined in `run.ts` and the network transport used to communicate
