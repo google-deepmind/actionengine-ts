@@ -295,7 +295,16 @@ var TEXT_MIME_TYPE = {
   subtype: "plain"
 };
 
-// stream/stream.js
+// stream/index.ts
+var stream_exports = {};
+__export(stream_exports, {
+  awaitableAsyncIterable: () => awaitableAsyncIterable,
+  createStream: () => createStream,
+  isAsyncIterable: () => isAsyncIterable,
+  thenableAsyncIterable: () => thenableAsyncIterable
+});
+
+// stream/stream.ts
 if (typeof Promise.withResolvers === "undefined") {
   Promise.withResolvers = () => {
     let resolve;
@@ -483,6 +492,11 @@ function thenableAsyncIterable(onfulfilled, onrejected) {
   };
   return aggregate().then(onfulfilled, onrejected);
 }
+function awaitableAsyncIterable(iter) {
+  const then = iter;
+  then.then = thenableAsyncIterable;
+  return then;
+}
 
 // content/prompt.js
 function transformToContent(value, metadataFn) {
@@ -539,9 +553,7 @@ function promptLiteralWithMetadata(metadataFn) {
     for (let i = 0; i < l; i++) {
       str += strings[i];
       let value = values[i];
-      if (value === void 0 || value === null) {
-        value = "";
-      }
+      value ??= "";
       if (typeof value === "string") {
         str += value;
       } else {
@@ -1034,9 +1046,7 @@ var LocalContext = class {
   }
   async write(id, chunk, options) {
     let pl = this.nodeMap.get(id);
-    if (pl === void 0) {
-      pl = this.createStream(id);
-    }
+    pl ??= this.createStream(id);
     const lastSeq = this.sequenceOrder.get(id);
     if (lastSeq === void 0) {
       throw new Error(`Sequence not found for ${id}`);
@@ -1063,9 +1073,7 @@ var LocalContext = class {
   }
   read(id) {
     let pl = this.nodeMap.get(id);
-    if (pl === void 0) {
-      pl = this.createStream(id);
-    }
+    pl ??= this.createStream(id);
     return pl;
   }
   async close() {
@@ -1450,7 +1458,7 @@ __export(evergreen_exports, {
   setBackend: () => setBackend
 });
 
-// actions/evergreen/actions.js
+// actions/evergreen/actions.ts
 var GENERATE = {
   name: "GENERATE",
   inputs: [
@@ -1475,7 +1483,7 @@ var GENERATE = {
   ]
 };
 
-// actions/evergreen/net.js
+// actions/evergreen/net.ts
 var AbstractBaseConnectionManager = class {
   callbacks = [];
   /**
@@ -1566,13 +1574,19 @@ var WebSocketConnectionManager = class _WebSocketConnectionManager extends Abstr
         const data = event.data;
         if (data instanceof Blob) {
           const buf = await data.arrayBuffer();
-          message = JSON.parse(new TextDecoder().decode(new Uint8Array(buf)));
+          message = JSON.parse(
+            new TextDecoder().decode(new Uint8Array(buf))
+          );
         } else if (data instanceof ArrayBuffer) {
-          message = JSON.parse(new TextDecoder().decode(new Uint8Array(data)));
+          message = JSON.parse(
+            new TextDecoder().decode(new Uint8Array(data))
+          );
         } else if (typeof data === "string") {
           message = JSON.parse(data);
         } else {
-          throw new Error(`Unsupported type ${this.socket.binaryType} ${typeof data}`);
+          throw new Error(
+            `Unsupported type ${this.socket.binaryType} ${typeof data}`
+          );
         }
         break;
       default:
@@ -1580,11 +1594,16 @@ var WebSocketConnectionManager = class _WebSocketConnectionManager extends Abstr
     }
     return message;
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onError(event) {
     console.info("Websocket error", event, this.socket);
   }
   onClose(event) {
-    console.info(`Websocket closed: ${event.reason} ${event.code}`, event, this.socket);
+    console.info(
+      `Websocket closed: ${event.reason} ${event.code}`,
+      event,
+      this.socket
+    );
   }
 };
 var CachingConnectionManagerFactory = class {
@@ -1609,16 +1628,14 @@ var CachingConnectionManagerFactory = class {
   }
 };
 
-// actions/evergreen/run.js
+// actions/evergreen/run.ts
 var UuidStreamIdGenerator = class {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   generateStreamId(streamName) {
     return crypto.randomUUID();
   }
 };
 var Options = class {
-  backend;
-  idGenerator;
-  connectionFactory;
   constructor(backend, idGenerator, connectionFactory) {
     this.backend = backend;
     this.idGenerator = idGenerator;
@@ -1747,7 +1764,10 @@ function sendInput(connectionManager, inputs, inputIds) {
   }
 }
 async function runEvergreenAction(session, uri, action2, inputs, outputs, options) {
-  const connectionManager = options.connectionFactory.getConnection(session, options.backend);
+  const connectionManager = options.connectionFactory.getConnection(
+    session,
+    options.backend
+  );
   await connectionManager.connect();
   const [inputIds, outputIds] = getUuids(inputs, outputs, options.idGenerator);
   const childIdMapping = {};
@@ -1762,9 +1782,6 @@ async function runEvergreenAction(session, uri, action2, inputs, outputs, option
   sendInput(connectionManager, inputs, inputIds);
 }
 var EvergreenAction = class extends Action {
-  uri;
-  action;
-  options;
   constructor(uri, action2, options) {
     super();
     this.uri = uri;
@@ -1772,7 +1789,14 @@ var EvergreenAction = class extends Action {
     this.options = options;
   }
   async run(session, inputs, outputs) {
-    await runEvergreenAction(session, this.uri, this.action, inputs, outputs, this.options);
+    await runEvergreenAction(
+      session,
+      this.uri,
+      this.action,
+      inputs,
+      outputs,
+      this.options
+    );
   }
 };
 var defaultConnectionFactory = new CachingConnectionManagerFactory(WebSocketConnectionManagerFactoryFn);
@@ -1787,9 +1811,11 @@ function getBackend() {
   return lazyBackend;
 }
 function action(uri, action2, options) {
-  if (options === void 0) {
-    options = new Options(getBackend(), new UuidStreamIdGenerator(), defaultConnectionFactory);
-  }
+  options ??= new Options(
+    getBackend(),
+    new UuidStreamIdGenerator(),
+    defaultConnectionFactory
+  );
   return new EvergreenAction(uri, action2, options);
 }
 export {
@@ -1798,7 +1824,8 @@ export {
   async_exports as async,
   base64_exports as base64,
   content_exports as content,
-  sessions_exports as sessions
+  sessions_exports as sessions,
+  stream_exports as stream
 };
 /**
  * @fileoverview Index export.

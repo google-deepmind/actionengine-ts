@@ -78,9 +78,7 @@ export function promptLiteralWithMetadata(
       str += strings[i];
       let value = values[i];
       // Empty values are treated as empty strings.
-      if (value === undefined || value === null) {
-        value = '';
-      }
+      value ??= '';
       if (typeof value === 'string') {
         str += value;
       } else {

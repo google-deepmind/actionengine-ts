@@ -13,11 +13,11 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// interfaces.js
+// interfaces.ts
 var Action = class {
 };
 
-// content/index.js
+// content/index.ts
 var content_exports = {};
 __export(content_exports, {
   JSON_MIME_TYPE: () => JSON_MIME_TYPE,
@@ -56,7 +56,7 @@ __export(content_exports, {
   withMetadata: () => withMetadata
 });
 
-// content/mime.js
+// content/mime.ts
 function stringifyMimetype(mimetype) {
   if (!mimetype) {
     return "application/octet-stream";
@@ -127,14 +127,14 @@ function parseMimetype(mimetype) {
   };
 }
 
-// content/content.js
-var ROLE;
-(function(ROLE2) {
+// content/content.ts
+var ROLE = /* @__PURE__ */ ((ROLE2) => {
   ROLE2["USER"] = "USER";
   ROLE2["ASSISTANT"] = "ASSISTANT";
   ROLE2["SYSTEM"] = "SYSTEM";
   ROLE2["CONTEXT"] = "CONTEXT";
-})(ROLE || (ROLE = {}));
+  return ROLE2;
+})(ROLE || {});
 function isTextChunk(maybeChunk) {
   return maybeChunk.metadata?.mimetype?.type === "text";
 }
@@ -231,9 +231,13 @@ function chunkBlob(chunk) {
 async function imageChunk(image, metadata = {}) {
   if (!image.complete) {
     await new Promise((resolve) => {
-      image.addEventListener("load", () => {
-        resolve();
-      }, { once: true });
+      image.addEventListener(
+        "load",
+        () => {
+          resolve();
+        },
+        { once: true }
+      );
     });
   }
   const canvas = new OffscreenCanvas(image.width, image.height);
@@ -304,7 +308,16 @@ var TEXT_MIME_TYPE = {
   subtype: "plain"
 };
 
-// stream/stream.js
+// stream/index.ts
+var stream_exports = {};
+__export(stream_exports, {
+  awaitableAsyncIterable: () => awaitableAsyncIterable,
+  createStream: () => createStream,
+  isAsyncIterable: () => isAsyncIterable,
+  thenableAsyncIterable: () => thenableAsyncIterable
+});
+
+// stream/stream.ts
 if (typeof Promise.withResolvers === "undefined") {
   Promise.withResolvers = () => {
     let resolve;
@@ -405,21 +418,18 @@ var Stream = class {
 async function* iteratorToIterable(iter) {
   while (true) {
     const result = await iter.next();
-    if (result.done)
-      break;
+    if (result.done) break;
     yield result.value;
   }
 }
 var StreamIterator = class {
-  stream;
-  done;
-  writeQueue = [];
-  readQueue = [];
   constructor(stream, current, done) {
     this.stream = stream;
     this.done = done;
     this.writeQueue = [...current];
   }
+  writeQueue = [];
+  readQueue = [];
   write(value) {
     const queued = this.readQueue.shift();
     if (queued) {
@@ -492,8 +502,13 @@ function thenableAsyncIterable(onfulfilled, onrejected) {
   };
   return aggregate().then(onfulfilled, onrejected);
 }
+function awaitableAsyncIterable(iter) {
+  const then = iter;
+  then.then = thenableAsyncIterable;
+  return then;
+}
 
-// content/prompt.js
+// content/prompt.ts
 function transformToContent(value, metadataFn) {
   if (typeof window !== "undefined") {
     if (value instanceof HTMLImageElement) {
@@ -548,9 +563,7 @@ function promptLiteralWithMetadata(metadataFn) {
     for (let i = 0; i < l; i++) {
       str += strings[i];
       let value = values[i];
-      if (value === void 0 || value === null) {
-        value = "";
-      }
+      value ??= "";
       if (typeof value === "string") {
         str += value;
       } else {
@@ -590,22 +603,24 @@ function assertIsContent(value) {
   return false;
 }
 var prompt2 = promptLiteralWithMetadata();
-var userPrompt = promptLiteralWithMetadata(() => ({ role: ROLE.USER }));
+var userPrompt = promptLiteralWithMetadata(() => ({ role: "USER" /* USER */ }));
 var systemPrompt = promptLiteralWithMetadata(() => ({
-  role: ROLE.SYSTEM
+  role: "SYSTEM" /* SYSTEM */
 }));
 var assistantPrompt = promptLiteralWithMetadata(() => ({
-  role: ROLE.ASSISTANT
+  role: "ASSISTANT" /* ASSISTANT */
 }));
 var contextPrompt = promptLiteralWithMetadata(() => ({
-  role: ROLE.CONTEXT
+  role: "CONTEXT" /* CONTEXT */
 }));
 function promptWithMetadata(prompt3, metadata) {
   if (isChunk(prompt3)) {
     const chunk = withMetadata(prompt3, metadata);
     return chunk;
   } else if (prompt3 instanceof Array) {
-    const list = prompt3.map((child) => promptWithMetadata(child, metadata));
+    const list = prompt3.map(
+      (child) => promptWithMetadata(child, metadata)
+    );
     return list;
   } else if (isAsyncIterable(prompt3)) {
     const pipe = createStream();
@@ -627,7 +642,7 @@ function promptWithMetadata(prompt3, metadata) {
   throw new Error(`Unsupported type ${prompt3}`);
 }
 
-// content/audio.js
+// content/audio.ts
 var DEFAULT_OUTPUT_SAMPLE_RATE = 24e3;
 var DEFAULT_INPUT_SAMPLE_RATE = 16e3;
 var DEFAULT_NUM_CHANNELS = 1;
@@ -658,7 +673,9 @@ async function decodeAudioData(chunk, ctx, sampleRate, numChannels) {
       buffer.copyToChannel(dataFloat32, 0);
     } else {
       for (let i = 0; i < numChannels; i++) {
-        const channel = dataFloat32.filter((_, index) => index % numChannels === i);
+        const channel = dataFloat32.filter(
+          (_, index) => index % numChannels === i
+        );
         buffer.copyToChannel(channel, i);
       }
     }
@@ -732,7 +749,11 @@ async function* mediaStreamToAudioChunks(media) {
   const numChannels = DEFAULT_NUM_CHANNELS;
   const src = ctx.createMediaStreamSource(media);
   const BUFFER_SIZE = 8192;
-  const processor = ctx.createScriptProcessor(BUFFER_SIZE, numChannels, numChannels);
+  const processor = ctx.createScriptProcessor(
+    BUFFER_SIZE,
+    numChannels,
+    numChannels
+  );
   const queue = [];
   let resolver = void 0;
   processor.onaudioprocess = (e) => {
@@ -784,7 +805,7 @@ async function* mediaStreamToAudioChunks(media) {
   }
 }
 
-// content/video.js
+// content/video.ts
 function imageChunksToMediaStream(chunks, options) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -844,7 +865,7 @@ async function* mediaStreamToImageChunks(media, options = {}) {
   }
 }
 
-// sessions/index.js
+// sessions/index.ts
 var sessions_exports = {};
 __export(sessions_exports, {
   local: () => local,
@@ -852,7 +873,7 @@ __export(sessions_exports, {
   sessionProvider: () => sessionProvider
 });
 
-// async/index.js
+// async/index.ts
 var async_exports = {};
 __export(async_exports, {
   merge: () => merge
@@ -900,21 +921,20 @@ async function* merge(...arr) {
   }
 }
 
-// sessions/utils.js
+// sessions/utils.ts
 var uniqueIdCounter = 1;
 function uniqueId() {
   return `${uniqueIdCounter++}`;
 }
 
-// sessions/session.js
+// sessions/session.ts
 var SessionPipe = class {
-  context;
-  id = uniqueId();
-  seq = 0;
-  closed = false;
   constructor(context) {
     this.context = context;
   }
+  id = uniqueId();
+  seq = 0;
+  closed = false;
   [Symbol.asyncIterator]() {
     return this.context.read(this.id)[Symbol.asyncIterator]();
   }
@@ -978,7 +998,6 @@ function isAction(maybeAction) {
   return false;
 }
 var Session = class {
-  context;
   constructor(context) {
     this.context = context;
   }
@@ -1031,7 +1050,7 @@ function sessionProvider(contextProvider) {
   };
 }
 
-// sessions/local.js
+// sessions/local.ts
 var LocalContext = class {
   nodeMap = /* @__PURE__ */ new Map();
   sequenceOrder = /* @__PURE__ */ new Map();
@@ -1043,9 +1062,7 @@ var LocalContext = class {
   }
   async write(id, chunk, options) {
     let pl = this.nodeMap.get(id);
-    if (pl === void 0) {
-      pl = this.createStream(id);
-    }
+    pl ??= this.createStream(id);
     const lastSeq = this.sequenceOrder.get(id);
     if (lastSeq === void 0) {
       throw new Error(`Sequence not found for ${id}`);
@@ -1072,9 +1089,7 @@ var LocalContext = class {
   }
   read(id) {
     let pl = this.nodeMap.get(id);
-    if (pl === void 0) {
-      pl = this.createStream(id);
-    }
+    pl ??= this.createStream(id);
     return pl;
   }
   async close() {
@@ -1087,15 +1102,14 @@ var LocalContext = class {
 };
 var local = sessionProvider(() => new LocalContext());
 
-// sessions/middleware/index.js
+// sessions/middleware/index.ts
 var middleware_exports = {};
 __export(middleware_exports, {
   debug: () => debug
 });
 
-// sessions/middleware/debug.js
+// sessions/middleware/debug.ts
 var DebugContext = class {
-  context;
   constructor(context) {
     this.context = context;
   }
@@ -1124,7 +1138,7 @@ var debug = (context) => {
   return new DebugContext(context);
 };
 
-// actions/index.js
+// actions/index.ts
 var actions_exports = {};
 __export(actions_exports, {
   GenerateContent: () => GenerateContent,
@@ -1135,31 +1149,31 @@ __export(actions_exports, {
   google: () => google_exports
 });
 
-// actions/common.js
+// actions/common.ts
 var GenerateContent = class extends Action {
 };
 var Live = class extends Action {
 };
 
-// actions/toy.js
+// actions/toy.ts
 var ReverseContent = class extends Action {
   async run(session, inputs, outputs) {
     for await (const chunk of inputs.prompt) {
       const text = chunkText(chunk);
       const reverse = text.split("").reverse().join("");
-      await outputs.response.write(textChunk(reverse, { role: ROLE.ASSISTANT }));
+      await outputs.response.write(textChunk(reverse, { role: "ASSISTANT" /* ASSISTANT */ }));
     }
     await outputs.response.close();
   }
 };
 
-// actions/google/index.js
+// actions/google/index.ts
 var google_exports = {};
 __export(google_exports, {
   genai: () => genai_exports
 });
 
-// actions/google/genai.js
+// actions/google/genai.ts
 var genai_exports = {};
 __export(genai_exports, {
   GenerateContent: () => GenerateContent2,
@@ -1167,7 +1181,7 @@ __export(genai_exports, {
 });
 import { GoogleGenAI, Modality } from "@google/genai";
 
-// base64/index.js
+// base64/index.ts
 var base64_exports = {};
 __export(base64_exports, {
   decode: () => decode,
@@ -1191,7 +1205,7 @@ function decode(base64) {
   return bytes;
 }
 
-// actions/google/genai.js
+// actions/google/genai.ts
 var clients = /* @__PURE__ */ new Map();
 function genAI(apiKey) {
   let client = clients.get(apiKey);
@@ -1202,8 +1216,6 @@ function genAI(apiKey) {
   return client;
 }
 var Live2 = class extends Live {
-  apiKey;
-  model;
   constructor(apiKey, model = "gemini-2.0-flash-exp") {
     super();
     this.apiKey = apiKey;
@@ -1241,8 +1253,7 @@ var Live2 = class extends Live {
     });
     async function readInputs() {
       const arr = [inputs.audio, inputs.video, inputs.screen].filter((x) => !!x);
-      if (arr.length === 0)
-        return;
+      if (arr.length === 0) return;
       for await (const chunk of merge(...arr)) {
         if (chunk.data) {
           live.sendRealtimeInput({
@@ -1322,8 +1333,6 @@ var Live2 = class extends Live {
   }
 };
 var GenerateContent2 = class extends GenerateContent {
-  apiKey;
-  model;
   constructor(apiKey, model) {
     super();
     this.apiKey = apiKey;
@@ -1348,13 +1357,13 @@ var GenerateContent2 = class extends GenerateContent {
   }
 };
 
-// actions/drive/index.js
+// actions/drive/index.ts
 var drive_exports = {};
 __export(drive_exports, {
   docToText: () => docToText
 });
 
-// actions/drive/auth.js
+// actions/drive/auth.ts
 var OAUTH_CLIENT_ID = "";
 var OAUTH_SCOPES = ["https://www.googleapis.com/auth/documents.readonly"];
 function oauthSignIn() {
@@ -1407,7 +1416,7 @@ function maybeAuthenticate() {
   }
 }
 
-// actions/drive/drive.js
+// actions/drive/drive.ts
 var DOCS_API = "https://docs.googleapis.com/v1/documents/";
 function documentToText(document2) {
   let documentText = "";
@@ -1431,7 +1440,9 @@ async function fetchDocument(url) {
   const docsId = match[1];
   const docsApi = `${DOCS_API}${docsId}`;
   const params = JSON.parse(localStorage.getItem("oauth2-test-params") ?? "{}");
-  const response = await fetch(`${docsApi}?access_token=${params.access_token}`);
+  const response = await fetch(
+    `${docsApi}?access_token=${params.access_token}`
+  );
   const documentData = await response.json();
   return documentData;
 }
@@ -1448,7 +1459,7 @@ var docToText = async function* (chunks) {
   }
 };
 
-// actions/evergreen/index.js
+// actions/evergreen/index.ts
 var evergreen_exports = {};
 __export(evergreen_exports, {
   AbstractBaseConnectionManager: () => AbstractBaseConnectionManager,
@@ -1459,7 +1470,7 @@ __export(evergreen_exports, {
   setBackend: () => setBackend
 });
 
-// actions/evergreen/actions.js
+// actions/evergreen/actions.ts
 var GENERATE = {
   name: "GENERATE",
   inputs: [
@@ -1484,7 +1495,7 @@ var GENERATE = {
   ]
 };
 
-// actions/evergreen/net.js
+// actions/evergreen/net.ts
 var AbstractBaseConnectionManager = class {
   callbacks = [];
   /**
@@ -1575,13 +1586,19 @@ var WebSocketConnectionManager = class _WebSocketConnectionManager extends Abstr
         const data = event.data;
         if (data instanceof Blob) {
           const buf = await data.arrayBuffer();
-          message = JSON.parse(new TextDecoder().decode(new Uint8Array(buf)));
+          message = JSON.parse(
+            new TextDecoder().decode(new Uint8Array(buf))
+          );
         } else if (data instanceof ArrayBuffer) {
-          message = JSON.parse(new TextDecoder().decode(new Uint8Array(data)));
+          message = JSON.parse(
+            new TextDecoder().decode(new Uint8Array(data))
+          );
         } else if (typeof data === "string") {
           message = JSON.parse(data);
         } else {
-          throw new Error(`Unsupported type ${this.socket.binaryType} ${typeof data}`);
+          throw new Error(
+            `Unsupported type ${this.socket.binaryType} ${typeof data}`
+          );
         }
         break;
       default:
@@ -1589,11 +1606,16 @@ var WebSocketConnectionManager = class _WebSocketConnectionManager extends Abstr
     }
     return message;
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onError(event) {
     console.info("Websocket error", event, this.socket);
   }
   onClose(event) {
-    console.info(`Websocket closed: ${event.reason} ${event.code}`, event, this.socket);
+    console.info(
+      `Websocket closed: ${event.reason} ${event.code}`,
+      event,
+      this.socket
+    );
   }
 };
 var CachingConnectionManagerFactory = class {
@@ -1618,16 +1640,14 @@ var CachingConnectionManagerFactory = class {
   }
 };
 
-// actions/evergreen/run.js
+// actions/evergreen/run.ts
 var UuidStreamIdGenerator = class {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   generateStreamId(streamName) {
     return crypto.randomUUID();
   }
 };
 var Options = class {
-  backend;
-  idGenerator;
-  connectionFactory;
   constructor(backend, idGenerator, connectionFactory) {
     this.backend = backend;
     this.idGenerator = idGenerator;
@@ -1660,7 +1680,13 @@ async function writeToOutputs(msg, outputIds, outputs, childIdMapping, pending) 
           const copy = [...existing];
           delete pending[childId];
           for (const existingNodeFragment of copy) {
-            await writeToOutputs({ nodeFragments: [existingNodeFragment] }, outputIds, outputs, childIdMapping, pending);
+            await writeToOutputs(
+              { nodeFragments: [existingNodeFragment] },
+              outputIds,
+              outputs,
+              childIdMapping,
+              pending
+            );
           }
         }
       }
@@ -1756,7 +1782,10 @@ function sendInput(connectionManager, inputs, inputIds) {
   }
 }
 async function runEvergreenAction(session, uri, action2, inputs, outputs, options) {
-  const connectionManager = options.connectionFactory.getConnection(session, options.backend);
+  const connectionManager = options.connectionFactory.getConnection(
+    session,
+    options.backend
+  );
   await connectionManager.connect();
   const [inputIds, outputIds] = getUuids(inputs, outputs, options.idGenerator);
   const childIdMapping = {};
@@ -1771,9 +1800,6 @@ async function runEvergreenAction(session, uri, action2, inputs, outputs, option
   sendInput(connectionManager, inputs, inputIds);
 }
 var EvergreenAction = class extends Action {
-  uri;
-  action;
-  options;
   constructor(uri, action2, options) {
     super();
     this.uri = uri;
@@ -1781,7 +1807,14 @@ var EvergreenAction = class extends Action {
     this.options = options;
   }
   async run(session, inputs, outputs) {
-    await runEvergreenAction(session, this.uri, this.action, inputs, outputs, this.options);
+    await runEvergreenAction(
+      session,
+      this.uri,
+      this.action,
+      inputs,
+      outputs,
+      this.options
+    );
   }
 };
 var defaultConnectionFactory = new CachingConnectionManagerFactory(WebSocketConnectionManagerFactoryFn);
@@ -1796,9 +1829,11 @@ function getBackend() {
   return lazyBackend;
 }
 function action(uri, action2, options) {
-  if (options === void 0) {
-    options = new Options(getBackend(), new UuidStreamIdGenerator(), defaultConnectionFactory);
-  }
+  options ??= new Options(
+    getBackend(),
+    new UuidStreamIdGenerator(),
+    defaultConnectionFactory
+  );
   return new EvergreenAction(uri, action2, options);
 }
 export {
@@ -1807,7 +1842,8 @@ export {
   async_exports as async,
   base64_exports as base64,
   content_exports as content,
-  sessions_exports as sessions
+  sessions_exports as sessions,
+  stream_exports as stream
 };
 /**
  * @fileoverview Index export.
@@ -1839,7 +1875,7 @@ export {
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-/**
+/** 
  * @fileoverview base64 helper utilities.
  * @license
  * SPDX-License-Identifier: Apache-2.0

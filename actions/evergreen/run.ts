@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {decode as b64decode, encode as b64encode} from '../../base64/index.js';
-import {parseMimetype, stringifyMimetype} from '../../content/mime.js';
+import { decode as b64decode, encode as b64encode } from '../../base64/index.js';
+import { parseMimetype, stringifyMimetype } from '../../content/mime.js';
 import {
   Action,
   Chunk,
@@ -43,6 +43,7 @@ export interface StreamIdGenerator {
  * to each stream.
  */
 export class UuidStreamIdGenerator implements StreamIdGenerator {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   generateStreamId(streamName: string): string {
     return crypto.randomUUID();
   }
@@ -120,7 +121,7 @@ async function writeToOutputs<T extends ActionSchema>(
           delete pending[childId];
           for (const existingNodeFragment of copy) {
             await writeToOutputs(
-              {nodeFragments: [existingNodeFragment]},
+              { nodeFragments: [existingNodeFragment] },
               outputIds,
               outputs,
               childIdMapping,
@@ -152,7 +153,7 @@ async function writeToOutputs<T extends ActionSchema>(
       ? b64decode(nodeFragment.chunkFragment.data)
       : undefined;
     const ref = nodeFragment.chunkFragment?.ref;
-    const chunk = data ? {metadata, data} : ref ? {metadata, ref} : {metadata};
+    const chunk = data ? { metadata, data } : ref ? { metadata, ref } : { metadata };
     await stream.write(chunk as Chunk);
     if (!nodeFragment.continued && outputIds[key]) {
       await stream.close();
@@ -268,6 +269,7 @@ async function runEvergreenAction<T extends ActionSchema>(
 
   // TODO(doug): await all the writes to finish.
 }
+
 class EvergreenAction<T extends ActionSchema> extends Action {
   constructor(
     private readonly uri: string,
@@ -292,8 +294,8 @@ class EvergreenAction<T extends ActionSchema> extends Action {
   }
 }
 
-const defaultConnectionFactory: CachingConnectionManagerFactory<unknown> =
-  new CachingConnectionManagerFactory(WebSocketConnectionManagerFactoryFn);
+const defaultConnectionFactory =
+  new CachingConnectionManagerFactory<unknown>(WebSocketConnectionManagerFactoryFn);
 
 let lazyBackend: string | undefined = undefined;
 
@@ -315,12 +317,10 @@ export function action<T extends ActionSchema>(
   options?: Options,
 ): ActionFromSchema<T> {
   // If no options are provided, use the default options.
-  if (options === undefined) {
-    options = new Options(
-      getBackend(),
-      new UuidStreamIdGenerator(),
-      defaultConnectionFactory,
-    );
-  }
+  options ??= new Options(
+    getBackend(),
+    new UuidStreamIdGenerator(),
+    defaultConnectionFactory,
+  );
   return new EvergreenAction<T>(uri, action, options);
 }
